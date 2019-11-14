@@ -55,7 +55,7 @@ bool in_board(int x, int y) {
     return true;
 }
 
-int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block) {
+int ChessBoard::Move(int y_start, int x_start, int y_final, int x_final, int y_block, int x_block) { // 按接口要求，需要转置
     // 错误判断
     if(board[x_start][y_start] != turn_player) {
         cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
@@ -68,6 +68,16 @@ int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_b
     if(board[x_final][y_final] || board[x_block][y_block]) {
         cout << "非法坐标：需求坐标已被占用！ErrorType:23333\n";
         return 23333;
+    }
+    int deltax = x_final - x_start, deltay = y_final - y_start;
+    if(!(deltax == 0) && !(deltay == 0) && !(deltax == deltay)) { // 移动合法性判断
+        cout << "非法移动：棋子移动方法不在8个方向上！ErrorType:88888\n";
+        return 88888;
+    }
+    deltax = x_block - x_final, deltay = y_block - y_final;
+    if(!(deltax == 0) && !(deltay == 0) && !(deltax == deltay)) { // 障碍物合法性判断
+        cout << "非法障碍：障碍物摆放方法不在8个方向上！ErrorType:10086\n";
+        return 88889;
     }
     // 坐 标 移 动
     board[x_start][y_start] = 0; 
@@ -90,8 +100,7 @@ int ChessBoard::Judge_Win() {
                 int x_next = i + dx[dir];
                 int y_next = j + dy[dir];
                 if(!in_board(x_next, y_next)) { // 越界判断
-                    found_winner = false;
-                    break;
+                    continue;
                 }
                 if(!board[x_next][y_next]) { // 是否被包围
                     found_winner = false;
