@@ -20,22 +20,24 @@ class ChessBoard {
         int Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block);
         bool Judge_Win();
         void Next_Turn();
+        void Save(); // 存档
+        void Reload(); // 读档
 };
 
 void ChessBoard::Display() { // demonstrate
     system("cls"); // 清屏
     // ● ○ ▓
-    for(int i=0; i<=8; i++) cout << i << " "; cout << endl; // 输出横坐标
+    for(int i=0; i<=8; i++) cout << i << "\t"; cout << "\n\n"; // 输出横坐标
     for(int i=0; i<8; i++) { // 中间行
         cout << i + 1; // 输出纵坐标
         for(int j=0; j<8; j++) {
-            cout << " ";
+            cout << "\t";
             if(board[i][j] == 1) cout << "●"; // 黑棋
             if(board[i][j] == 2) cout << "○"; // 白棋
             if(board[i][j] == 0) cout << " ";
             if(board[i][j] == -1) cout << "▓"; // 障碍
         }
-        cout << "\n";
+        cout << "\n\n";
     }
 }
 
@@ -128,4 +130,27 @@ bool ChessBoard::Judge_Win() {
 
 void ChessBoard::Next_Turn() {
     turn_player = 3 - turn_player;
+}
+
+void ChessBoard::Save() { // 直接保存棋盘信息
+    FILE* fp = fopen("./Data/archive.log", "w");
+    for(int i=0; i<8; i++) {
+        for(int j=0; j<8; j++) {
+            fprintf(fp, "%d ", board[i][j]);
+        }
+        fprintf(fp, "\n");
+    }
+    fprintf(fp, "%d\n", turn_player);
+    fclose(fp);
+}
+
+void ChessBoard::Reload() { // 直接读取棋盘信息
+    FILE* fp = fopen("./Data/archive.log", "r");
+    if(!feof(fp)) {
+        for(int i=0; i<8; i++)
+            for(int j=0; j<8; j++)
+                fscanf(fp, "%d", &board[i][j]);
+    }
+    fscanf(fp, "%d", &turn_player);
+    fclose(fp);
 }
