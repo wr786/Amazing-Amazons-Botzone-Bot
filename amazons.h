@@ -24,9 +24,11 @@ class ChessBoard {
 void ChessBoard::Display() { // demonstrate
     system("cls"); // 清屏
     // ● ○ ▓
+    for(int i=0; i<=8; i++) cout << i << " "; cout << endl; // 输出横坐标
     for(int i=0; i<8; i++) { // 中间行
+        cout << i + 1; // 输出纵坐标
         for(int j=0; j<8; j++) {
-            if(j) cout << " ";
+            cout << " ";
             if(board[i][j] == 1) cout << "●"; // 黑棋
             if(board[i][j] == 2) cout << "○"; // 白棋
             if(board[i][j] == 0) cout << " ";
@@ -37,6 +39,7 @@ void ChessBoard::Display() { // demonstrate
 }
 
 void ChessBoard::Reset() { // initialize
+    ios::sync_with_stdio(false); // iostream加速
     system("chcp 65001"); // 使cmd能输出UTF-8编码
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++)
@@ -55,15 +58,15 @@ bool in_board(int x, int y) {
 int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block) {
     // 错误判断
     if(board[x_start][y_start] != turn_player) {
-        cout << "非法坐标：这个位置没有您的棋！ErrorType:11037";
+        cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
         return 11037;
     }
-    if(in_board(x_start, y_start) || in_board(x_final, y_final) || in_board(x_block, y_block)) {
-        cout << "非法坐标：坐标越界！ErrorType:37510";
+    if(!in_board(x_start, y_start) && !in_board(x_final, y_final) && !in_board(x_block, y_block)) {
+        cout << "非法坐标：坐标越界！ErrorType:37510\n";
         return 37510;
     }
     if(board[x_final][y_final] || board[x_block][y_block]) {
-        cout << "非法坐标：需求坐标已被占用！ErrorType:23333";
+        cout << "非法坐标：需求坐标已被占用！ErrorType:23333\n";
         return 23333;
     }
     // 坐 标 移 动
