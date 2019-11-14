@@ -1,5 +1,6 @@
 #include<cstdio>
 #include<iostream>
+#include<cmath>
 using namespace std;
 
 class ChessBoard {
@@ -17,7 +18,7 @@ class ChessBoard {
         void Display();
         void Reset();
         int Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block);
-        int Judge_Win();
+        bool Judge_Win();
         void Next_Turn();
 };
 
@@ -65,16 +66,16 @@ int ChessBoard::Move(int y_start, int x_start, int y_final, int x_final, int y_b
         cout << "非法坐标：坐标越界！ErrorType:37510\n";
         return 37510;
     }
-    if(board[x_final][y_final] || board[x_block][y_block]) {
+    if((board[x_final][y_final] || board[x_block][y_block]) && !(x_block == x_start && y_block == y_start)) { // 特判回马枪情形
         cout << "非法坐标：需求坐标已被占用！ErrorType:23333\n";
         return 23333;
     }
-    int deltax = x_final - x_start, deltay = y_final - y_start;
+    int deltax = abs(x_final - x_start), deltay = abs(y_final - y_start);
     if(!(deltax == 0) && !(deltay == 0) && !(deltax == deltay)) { // 移动合法性判断
         cout << "非法移动：棋子移动方法不在8个方向上！ErrorType:88888\n";
         return 88888;
     }
-    deltax = x_block - x_final, deltay = y_block - y_final;
+    deltax = abs(x_block - x_final), deltay = abs(y_block - y_final);
     if(!(deltax == 0) && !(deltay == 0) && !(deltax == deltay)) { // 障碍物合法性判断
         cout << "非法障碍：障碍物摆放方法不在8个方向上！ErrorType:10086\n";
         return 88889;
@@ -86,16 +87,21 @@ int ChessBoard::Move(int y_start, int x_start, int y_final, int x_final, int y_b
     return 0;
 }
 
-int ChessBoard::Judge_Win() {
-    int cnt_black = 0, cnt_white = 0, color_now;
+bool ChessBoard::Judge_Win() {
+    int color_now, cnt[3] = {0, 0, 0}; // cnt用来记录当前颜色出现过的次数
+    bool locked[3][5];
+    for(int i=1; i<=2; i++)
+        for(int j=1; j<=4; j++)
+            locked[i][j] = false; // 记录颜色为i的第j个棋子是否被锁死
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++) {
             if(board[i][j] == BLACK) 
-                cnt_black++, color_now = BLACK;
+                color_now = BLACK;
             else if(board[i][j] == WHITE)
-                cnt_white++, color_now = WHITE;
+                color_now = WHITE;
             else continue;
-            bool found_winner = true;
+            cnt[color_now]++;
+            locked[color_now][cnt[color_now]] = true;
             for(int dir=0; dir<8; dir++) {
                 int x_next = i + dx[dir];
                 int y_next = j + dy[dir];
@@ -103,13 +109,21 @@ int ChessBoard::Judge_Win() {
                     continue;
                 }
                 if(!board[x_next][y_next]) { // 是否被包围
-                    found_winner = false;
+                    locked[color_now][cnt[color_now]] = false;
                     break;
                 }
             }
-            if(found_winner) return color_now;
         }
-    return 0;
+    locked[BLACK][0] = (locked[BLACK][1] && locked[BLACK][2] && locked[BLACK][3] && locked[BLACK][4]);
+    locked[WHITE][0] = (locked[WHITE][1] && locked[WHITE][2] && locked[WHITE][3] && locked[WHITE][4]);
+    if(locked[BLACK][0]) {
+        Display();
+        cout << "胜者是白方○！\n";
+    } else if(locked[WHITE][0]) {
+        Display();
+        cout << "胜者是黑方●！\n";
+    } else return false;
+    return true;
 }
 
 void ChessBoard::Next_Turn() {

@@ -19,8 +19,5 @@ int main() {
             if(op != 'Y') return 0;
         } 
     }
-    Board.Display();
-    if(winner = Board.BLACK) cout << "胜者是黑方@!\n";
-    else cout << "胜者是白方O!\n";
     return 0;
 }
