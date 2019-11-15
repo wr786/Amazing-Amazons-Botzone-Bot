@@ -28,7 +28,10 @@ int main() {
             Board.Save();
         } else if(op == 'R') {
             Board.Regret(sx-1, sy-1, ex-1, ey-1, bx-1, by-1);
-        }   
+        } else if(op == 'H') {
+            Board.Reset_Hint();
+            Board.Hint();
+        }
     }
     system("pause");
     return 0;

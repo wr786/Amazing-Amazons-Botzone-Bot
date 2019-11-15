@@ -9,11 +9,14 @@ class ChessBoard {
         //           → ↘  ↓  ↙ ←  ↖   ↑   ↗
         int dx[8] = {0, 1, 1, 1, 0, -1, -1, -1};
         int dy[8] = {1, 1, 0, -1, -1, -1, 0, 1};
+        bool hinted = false;
     public:
         // 标记
         short BLACK = 1; // 黑棋
         short WHITE = 2; // 白棋
+        short EMPTY = 0;
         short BLOCK = -1; // 障碍物
+        short CANGO = 6; // 可以下的点（而且可以进一步放障碍物）
         int turn_player; // 本回合玩家
         void Display();
         void Reset();
@@ -26,23 +29,28 @@ class ChessBoard {
         void Reload(); // 读档
         void Show_Menu(); // 菜单展示
         void Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block); // 悔棋
+        void Reset_Hint();
+        void Search_Hint(int x, int y, int dir);
+        void Hint(); // 提示（同时也是计算出所有可以前往的点）
 };
 
 void ChessBoard::Display() { // demonstrate
     system("cls"); // 清屏
-    // ● ○ ▓
+    // ● ○ ▓ ◎
     for(int i=0; i<=8; i++) cout << i << "\t"; cout << "\n\n"; // 输出横坐标
     for(int i=0; i<8; i++) { // 中间行
         cout << i + 1; // 输出纵坐标
         for(int j=0; j<8; j++) {
             cout << "\t";
-            if(board[i][j] == 1) cout << "●"; // 黑棋
-            if(board[i][j] == 2) cout << "○"; // 白棋
-            if(board[i][j] == 0) cout << " ";
-            if(board[i][j] == -1) cout << "▓"; // 障碍
+            if(board[i][j] == BLACK) cout << "●"; // 黑棋
+            if(board[i][j] == WHITE) cout << "○"; // 白棋
+            if(board[i][j] == EMPTY) cout << " ";
+            if(board[i][j] == BLOCK) cout << "▓"; // 障碍
+            if(board[i][j] == CANGO) cout << "◎"; // 提示点
         }
         cout << "\n\n";
     }
+    if(hinted) Reset_Hint();
 }
 
 void ChessBoard::Reset() { // initialize
@@ -70,7 +78,7 @@ bool ChessBoard::Can_Move(int x, int y) {
         if(!In_Board(x_next, y_next)) { // 越界判断
             continue;
         }
-        if(!board[x_next][y_next]) { // 是否被包围
+        if(!board[x_next][y_next] && board[x_next][y_next] != CANGO) { // 是否被包围
             ret = true;
             break;
         }
@@ -178,4 +186,41 @@ void ChessBoard::Regret(int y_start, int x_start, int y_final, int x_final, int 
     board[x_start][y_start] = turn_player; 
     board[x_final][y_final] = 0;
     board[x_block][y_block] = 0;
+}
+
+void ChessBoard::Reset_Hint() {
+    for(int i=0; i<8; i++)
+        for(int j=0; j<8; j++)
+            if(board[i][j] == CANGO)
+                board[i][j] = 0; // EMPTY;
+    hinted = false;
+}
+
+void ChessBoard::Search_Hint(int x, int y, int dir_limited) {
+    if(dir_limited == -1) { // 没有规定方向
+        for(int dir=0; dir<8; dir++) {
+            int x_next = x + dx[dir], y_next = y + dy[dir];
+            if(In_Board(x_next, y_next) && !board[x_next][y_next] && Can_Move(x_next, y_next)) { // 在棋盘内 + 为空 + 可以放障碍物
+                board[x_next][y_next] = CANGO;
+                hinted = true;
+                Search_Hint(x_next, y_next, dir);
+            }
+        }
+    } else {
+        int x_next = x + dx[dir_limited], y_next = y + dy[dir_limited];
+        if(In_Board(x_next, y_next) && !board[x_next][y_next] && Can_Move(x_next, y_next)) { // 在棋盘内 + 为空 + 可以放障碍物
+            board[x_next][y_next] = CANGO;
+            Search_Hint(x_next, y_next, dir_limited);
+        }
+    }
+}
+
+void ChessBoard::Hint() {
+    for(int i=0; i<8; i++)
+        for(int j=0; j<8; j++) {
+            if(board[i][j] == turn_player) {
+                Search_Hint(i, j, -1);
+                return;
+            }
+        }
 }
