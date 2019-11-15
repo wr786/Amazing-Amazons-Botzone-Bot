@@ -17,6 +17,8 @@ class ChessBoard {
         int turn_player; // 本回合玩家
         void Display();
         void Reset();
+        bool In_Board(int x, int y);
+        bool Can_Move(int x, int y);
         int Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block);
         bool Judge_Win();
         void Next_Turn();
@@ -24,7 +26,6 @@ class ChessBoard {
         void Reload(); // 读档
         void Show_Menu(); // 菜单展示
         void Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block); // 悔棋
-        void Hint();
 };
 
 void ChessBoard::Display() { // demonstrate
@@ -55,10 +56,26 @@ void ChessBoard::Reset() { // initialize
     turn_player = 1;
 }
 
-bool in_board(int x, int y) {
+bool ChessBoard::In_Board(int x, int y) {
     if(x < 0 || x >= 8) return false;
     if(y < 0 || y >= 8) return false;
     return true;
+}
+
+bool ChessBoard::Can_Move(int x, int y) {
+    bool ret = false;
+    for(int dir=0; dir<8; dir++) {
+        int x_next = x + dx[dir];
+        int y_next = y + dy[dir];
+        if(!In_Board(x_next, y_next)) { // 越界判断
+            continue;
+        }
+        if(!board[x_next][y_next]) { // 是否被包围
+            ret = true;
+            break;
+        }
+    }
+    return ret;
 }
 
 int ChessBoard::Move(int y_start, int x_start, int y_final, int x_final, int y_block, int x_block) { // 按接口要求，需要转置
@@ -67,7 +84,7 @@ int ChessBoard::Move(int y_start, int x_start, int y_final, int x_final, int y_b
         cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
         return 11037;
     }
-    if(!in_board(x_start, y_start) && !in_board(x_final, y_final) && !in_board(x_block, y_block)) {
+    if(!In_Board(x_start, y_start) && !In_Board(x_final, y_final) && !In_Board(x_block, y_block)) {
         cout << "非法坐标：坐标越界！ErrorType:37510\n";
         return 37510;
     }
@@ -106,18 +123,8 @@ bool ChessBoard::Judge_Win() {
                 color_now = WHITE;
             else continue;
             cnt[color_now]++;
-            locked[color_now][cnt[color_now]] = true;
-            for(int dir=0; dir<8; dir++) {
-                int x_next = i + dx[dir];
-                int y_next = j + dy[dir];
-                if(!in_board(x_next, y_next)) { // 越界判断
-                    continue;
-                }
-                if(!board[x_next][y_next]) { // 是否被包围
-                    locked[color_now][cnt[color_now]] = false;
-                    break;
-                }
-            }
+            locked[color_now][cnt[color_now]] = !Can_Move(i, j);
+            
         }
     locked[BLACK][0] = (locked[BLACK][1] && locked[BLACK][2] && locked[BLACK][3] && locked[BLACK][4]);
     locked[WHITE][0] = (locked[WHITE][1] && locked[WHITE][2] && locked[WHITE][3] && locked[WHITE][4]);

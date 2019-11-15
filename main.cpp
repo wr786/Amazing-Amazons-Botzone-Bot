@@ -2,7 +2,7 @@
 
 // 待实现功能备忘录
 // 1. 菜单Menu √
-// 2. 悔棋Regret
+// 2. 悔棋Regret √
 // 3. 提示Hint
 // 4. AI
 // 5. GUI
@@ -30,5 +30,6 @@ int main() {
             Board.Regret(sx-1, sy-1, ex-1, ey-1, bx-1, by-1);
         }   
     }
+    system("pause");
     return 0;
 }
