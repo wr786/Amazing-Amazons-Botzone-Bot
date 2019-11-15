@@ -22,6 +22,9 @@ class ChessBoard {
         void Next_Turn();
         void Save(); // 存档
         void Reload(); // 读档
+        void Show_Menu(); // 菜单展示
+        void Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block); // 悔棋
+        void Hint();
 };
 
 void ChessBoard::Display() { // demonstrate
@@ -153,4 +156,19 @@ void ChessBoard::Reload() { // 直接读取棋盘信息
     }
     fscanf(fp, "%d", &turn_player);
     fclose(fp);
+}
+
+void ChessBoard::Show_Menu() {
+    cout << "\n\t\t\t现在是" << (turn_player == 1? "黑方●" : "白方○") << "のTurnだ☆ぜ！\n";
+    cout << "\t\t\t> M  移动\t> R  悔棋\t\n";
+    cout << "\t\t\t> S  存档\t> H  提示\t\n";
+}
+
+void ChessBoard::Regret(int y_start, int x_start, int y_final, int x_final, int y_block, int x_block) { // 按接口要求，需要转置
+    // 因为坐标的合法性已经在Move里验证过了，所以此处可以免去错误检测环节
+    // ワタシ、再生産。
+    Next_Turn();
+    board[x_start][y_start] = turn_player; 
+    board[x_final][y_final] = 0;
+    board[x_block][y_block] = 0;
 }
