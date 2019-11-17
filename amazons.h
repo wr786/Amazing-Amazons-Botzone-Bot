@@ -177,6 +177,7 @@ void ChessBoard::Show_Menu() {
     cout << "\n\t\t\t现在是" << (turn_player == 1? "黑方●" : "白方○") << "のTurnだ☆ぜ！\n";
     cout << "\t\t\t> M  移动\t> R  悔棋\t\n";
     cout << "\t\t\t> S  存档\t> H  提示\t\n";
+    cout << "\t\t\t> E  退出\t> N  是新游戏\t\n";
 }
 
 void ChessBoard::Regret(int y_start, int x_start, int y_final, int x_final, int y_block, int x_block) { // 按接口要求，需要转置

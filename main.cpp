@@ -1,11 +1,10 @@
 #include "amazons.h"
 
 // 待实现功能备忘录
-// 1. 菜单Menu √
-// 2. 悔棋Regret √
-// 3. 提示Hint
-// 4. AI
-// 5. GUI
+// 1. AI
+// 2. GUI
+// 3. 分离判断可落子点与可放障碍物点（重复调用两次同一个函数即可）
+// 4. 存储8个棋子所在坐标的数组
 
 int main() {
     ChessBoard Board; Board.Reset();
@@ -31,6 +30,10 @@ int main() {
         } else if(op == 'H') {
             Board.Reset_Hint();
             Board.Hint();
+        } else if(op == 'E') {
+            return 0;
+        } else if(op == 'N') {
+            Board.Reset();
         }
     }
     system("pause");
