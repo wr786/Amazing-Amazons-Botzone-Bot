@@ -9,6 +9,7 @@ class ChessBoard {
         //           → ↘  ↓  ↙ ←  ↖   ↑   ↗
         int dx[8] = {0, 1, 1, 1, 0, -1, -1, -1};
         int dy[8] = {1, 1, 0, -1, -1, -1, 0, 1};
+        int chess[3][4]; // 存取四个棋所在的xy坐标，1为黑棋，2为白棋,十位数为x，个位数为y
         bool hinted = false;
     public:
         // 标记
@@ -31,7 +32,10 @@ class ChessBoard {
         void Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block); // 悔棋
         void Reset_Hint();
         void Search_Hint(int x, int y, int dir);
-        void Hint(); // 提示（同时也是计算出所有可以前往的点）
+        void Hint(); // 提示（同时也是计算出所有可以前往的点） 面向用户使用
+        // 用来寻找所有可以落子或放障碍物的点（因为这两者本质上属于同一逻辑，所以实际上只要调用两次即可）面向AI寻找可行解使用
+        void Find_Solutions();
+        void Find_Possible_Position(int x, int y);
 };
 
 void ChessBoard::Display() { // demonstrate
@@ -61,6 +65,8 @@ void ChessBoard::Reset() { // initialize
             board[i][j] = 0; 
     board[0][2] = board[2][0] = board[0][5] = board[2][7] = BLACK;
     board[5][0] = board[7][2] = board[5][7] = board[7][5] = WHITE;
+    chess[1][0] = 2; chess[1][1] = 20; chess[1][2] = 5; chess[1][3] = 27;
+    chess[2][0] = 50; chess[2][1] = 72; chess[2][2] = 57; chess[2][3] = 75;
     turn_player = 1;
 }
 
@@ -111,29 +117,21 @@ int ChessBoard::Move(int y_start, int x_start, int y_final, int x_final, int y_b
         return 88889;
     }
     // 坐 标 移 动
+    int chessidx = 0;
+    for(;chessidx<4;chessidx++) {if(chess[turn_player][chessidx] == x_start*10 + y_start) break;}
     board[x_start][y_start] = 0; 
     board[x_final][y_final] = turn_player;
+    chess[turn_player][chessidx] = x_final*10 + y_final;
     board[x_block][y_block] = BLOCK;
     return 0;
 }
 
 bool ChessBoard::Judge_Win() {
-    int color_now, cnt[3] = {0, 0, 0}; // cnt用来记录当前颜色出现过的次数
-    bool locked[3][5];
-    for(int i=1; i<=2; i++)
-        for(int j=1; j<=4; j++)
-            locked[i][j] = false; // 记录颜色为i的第j个棋子是否被锁死
-    for(int i=0; i<8; i++)
-        for(int j=0; j<8; j++) {
-            if(board[i][j] == BLACK) 
-                color_now = BLACK;
-            else if(board[i][j] == WHITE)
-                color_now = WHITE;
-            else continue;
-            cnt[color_now]++;
-            locked[color_now][cnt[color_now]] = !Can_Move(i, j);
-            
-        }
+    bool locked[3][5]; // 记录对应颜色的第某个棋子是否被锁死
+    for(int i=0; i<4; i++) { // 计算其是否被锁死
+        locked[BLACK][i+1] = !Can_Move(chess[BLACK][i]/10, chess[BLACK][i]%10);
+        locked[WHITE][i+1] = !Can_Move(chess[WHITE][i]/10, chess[WHITE][i]%10);
+    }
     locked[BLACK][0] = (locked[BLACK][1] && locked[BLACK][2] && locked[BLACK][3] && locked[BLACK][4]);
     locked[WHITE][0] = (locked[WHITE][1] && locked[WHITE][2] && locked[WHITE][3] && locked[WHITE][4]);
     if(locked[BLACK][0]) {
@@ -217,11 +215,6 @@ void ChessBoard::Search_Hint(int x, int y, int dir_limited) {
 }
 
 void ChessBoard::Hint() {
-    for(int i=0; i<8; i++)
-        for(int j=0; j<8; j++) {
-            if(board[i][j] == turn_player) {
-                Search_Hint(i, j, -1);
-                return;
-            }
-        }
+    for(int i=0; i<4; i++)
+        Search_Hint(chess[turn_player][i]/10, chess[turn_player][i]%10, -1);
 }

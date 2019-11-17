@@ -4,7 +4,6 @@
 // 1. AI
 // 2. GUI
 // 3. 分离判断可落子点与可放障碍物点（重复调用两次同一个函数即可）
-// 4. 存储8个棋子所在坐标的数组
 
 int main() {
     ChessBoard Board; Board.Reset();
