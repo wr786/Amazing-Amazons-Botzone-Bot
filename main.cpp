@@ -1,9 +1,11 @@
 #include "amazons.h"
+#include<ctime> // 仅仅测试效率用！！！！！
 
 // 待实现功能备忘录
 // 1. AI
 // 2. GUI
 // 3. 分离判断可落子点与可放障碍物点（重复调用两次同一个函数即可）
+// 4. 改进生成可行解函数的效率
 
 int main() {
     ChessBoard Board; Board.Reset();
@@ -33,6 +35,18 @@ int main() {
             return 0;
         } else if(op == 'N') {
             Board.Reset();
+        } else if(op == 'T') { // 测试功能用！！！！！
+            // 放大法
+            clock_t startTime = clock();
+            for(int i=1; i<=10000; i++) {
+                Board.Find_Solutions();
+            }
+            clock_t endTime = clock();
+            cout << "在" << double(endTime - startTime) / CLOCKS_PER_SEC << "s内生成了" << 10000 * Board.SolutionList.idx << "种Move方法" << endl;
+            system("pause");
+            // for(vector<int>::iterator it = SolutionList.begin(); it != SolutionList.end(); it++) {
+            //     cout << *it << endl;
+            // }
         }
     }
     system("pause");

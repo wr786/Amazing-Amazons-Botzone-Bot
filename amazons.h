@@ -1,6 +1,7 @@
 #include<cstdio>
 #include<iostream>
 #include<cmath>
+#include<vector>
 using namespace std;
 
 class ChessBoard {
@@ -19,6 +20,10 @@ class ChessBoard {
         short BLOCK = -1; // 障碍物
         short CANGO = 6; // 可以下的点（而且可以进一步放障碍物）
         int turn_player; // 本回合玩家
+        struct SL { // 存放可行解用
+            int solution[2000];
+            int idx = 0; // 记得每次用完时要归零
+        } SolutionList;
         void Display();
         void Reset();
         bool In_Board(int x, int y);
@@ -33,9 +38,11 @@ class ChessBoard {
         void Reset_Hint();
         void Search_Hint(int x, int y, int dir);
         void Hint(); // 提示（同时也是计算出所有可以前往的点） 面向用户使用
-        // 用来寻找所有可以落子或放障碍物的点（因为这两者本质上属于同一逻辑，所以实际上只要调用两次即可）面向AI寻找可行解使用
-        void Find_Solutions();
-        void Find_Possible_Position(int x, int y);
+        // 用来寻找所有可以落子和放障碍物的点 面向AI寻找可行解使用
+        // 其中SolutionList存放的每个Solution均为一个整数，每位数依次为 起始点x、y，终点x、y，障碍点x、y
+        inline void Find_Possible_Move(int xy);
+        inline void Find_Possible_Block(int xy_start, int xy_final);
+        inline void Find_Solutions();
 };
 
 void ChessBoard::Display() { // demonstrate
@@ -217,4 +224,37 @@ void ChessBoard::Search_Hint(int x, int y, int dir_limited) {
 void ChessBoard::Hint() {
     for(int i=0; i<4; i++)
         Search_Hint(chess[turn_player][i]/10, chess[turn_player][i]%10, -1);
+}
+
+inline void ChessBoard::Find_Possible_Block(int xy_start, int xy_final) {
+    // 搜索常用套路
+    board[xy_start/10][xy_start%10] = EMPTY;
+    board[xy_final/10][xy_final%10] = turn_player;
+    for(int dir=0; dir<8; dir++) {
+        int x_tmp = xy_final/10 + dx[dir], y_tmp = xy_final%10 + dy[dir]; // 故 技 重 施
+        while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY) { // 在能够落子之后还能放障碍物，那么这就相当于一个Solution
+            // 每个Solution均为一个整数，每位数依次为 起始点x、y，终点x、y，障碍点x、y（复读）
+            SolutionList.solution[++SolutionList.idx] = (xy_start * 1e4 + xy_final * 1e2 + x_tmp *10 + y_tmp);
+            x_tmp += dx[dir], y_tmp += dy[dir];
+        }
+    }
+    board[xy_start/10][xy_start%10] = turn_player;
+    board[xy_final/10][xy_final%10] = EMPTY;
+}
+
+inline void ChessBoard::Find_Possible_Move(int xy) {
+    for(int dir=0; dir<8; dir++) {
+        int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
+        while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY) { // 能够落子
+            Find_Possible_Block(xy, x_tmp*10 + y_tmp);
+            x_tmp += dx[dir], y_tmp += dy[dir];
+        }
+    }
+}
+
+inline void ChessBoard::Find_Solutions() {
+    SolutionList.idx = 0;
+    for(int idx=0; idx<4; idx++) {
+        Find_Possible_Move(chess[turn_player][idx]);
+    }
 }
