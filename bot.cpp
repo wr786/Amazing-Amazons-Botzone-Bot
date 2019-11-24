@@ -227,7 +227,8 @@ void ChessBoard::expand() {
         }
         // 模拟下棋
         //cout << sol << endl;
-        ptrChildren[idx]->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
+        int ErrorMsg = ptrChildren[idx]->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
+        if(ErrorMsg) continue;
         ptrChildren[idx]->last_move = sol;
         ptrChildren[idx]->Next_Turn();
         if(i<SolutionList.idx) idx++;
@@ -248,7 +249,7 @@ int ChessBoard::selectChild() {
         ChessBoard* ptrCurChild = ptrChildren[i]; 
         // 局面评估
         double curScore = ptrCurChild->wins / (ptrCurChild->visits + EPS) + C * sqrt(log(visits + 1) / (ptrCurChild->visits + EPS)); // 加EPS防止除数为0的情况 
-        if(curScore >= bestScore) {
+        if(curScore > bestScore) {
             ret = i;
             bestScore = curScore;
         }
@@ -283,7 +284,7 @@ void ChessBoard::iterate() { // 遍历
 
 int ChessBoard::getBestSol() {
     uct_turnplayer = turn_player;
-    for(int i=0; i<30; i++) // 共迭代几次 通过调整这个控制时间
+    for(int i=0; i<786; i++) // 共迭代几次 通过调整这个控制时间
         iterate();
     int bestSolId = selectChild();
     // int bestSolId = 0;
