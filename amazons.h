@@ -139,6 +139,7 @@ int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_b
     }
     if(board[x_start][y_start] != turn_player) {
         cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
+        //cout << "board[" << x_start << "][" << y_start << "] = " << board[x_start][y_start];
         return 11037;
     }
     if((board[x_final][y_final] || board[x_block][y_block]) && !(x_block == x_start && y_block == y_start)) { // 特判回马枪情形
@@ -312,10 +313,11 @@ void ChessBoard::expand() {
     if(!isLeaf) return;
     Find_Solutions();
     childNum = SolutionList.idx;
+    int idx = 0;
     for (int i = 0; i < childNum; i++) { // 生成所有下了可行解的棋盘
         ptrChildren[i] = new ChessBoard();
         ptrChildren[i]->copy(*this);
-        int sol = SolutionList.solution[i];
+        int sol = SolutionList.solution[i+1]; // 统一下标格式
         // 模拟下棋
         //cout << sol << endl;
         ptrChildren[i]->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
@@ -369,21 +371,8 @@ void ChessBoard::iterate() { // 遍历
 
 int ChessBoard::getBestSol() {
     uct_turnplayer = turn_player;
-    // for(int i=0; i<20; i++) // 共迭代几次
-        // iterate();
-    // int bestSolId = selectChild();
-    Find_Solutions();
-    for(int i=1; i<=SolutionList.idx; i++) {
-        int sol = SolutionList.solution[i];
-        int ErrorMsg = Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
-        if(ErrorMsg) {
-            cout << "sol=" << sol << "board["<<sol/100000<<"]["<<(sol/10000)%10<<"]=" << board[sol/100000][(sol/10000)%10] <<endl;
-            for(int i=0; i<4; i++) cout << chess[turn_player][i] << " ";
-            cout << endl;
-            continue;
-        }
-        Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
-    }
-    return 0;
-    // return SolutionList.solution[bestSolId];
+    for(int i=0; i<40; i++) // 共迭代几次
+        iterate();
+    int bestSolId = selectChild();
+    return SolutionList.solution[bestSolId];
 }
