@@ -16,7 +16,7 @@ int main() {
         Board.Display(); 
         // DEBUG用！！
         clock_t startTime = clock();
-        cout << Board.getBestSol()<< endl;
+        cout << "BestSol:" << Board.getBestSol()<< endl;
         clock_t endTime = clock();
         cout << "在" << double(endTime - startTime) / CLOCKS_PER_SEC << "s内生成了BestSol" << endl;
         // DEBUG用！！
@@ -24,7 +24,7 @@ int main() {
         if(op == 'M') {
             cout << "请按 出发点x坐标 出发点y坐标 目的地x坐标 目的地y坐标 障碍物x坐标 障碍物y坐标 （第x列第y行）的格式输入操作：\n";
             cin >> sx >> sy >> ex >> ey >> bx >> by;
-            int ErrorMessage = Board.Move(sx-1, sy-1, ex-1, ey-1, bx-1, by-1);
+            int ErrorMessage = Board.Move(sy-1, sx-1, ey-1, ex-1, by-1, bx-1); // 面向用户
             if(!ErrorMessage) Board.Next_Turn();
             else{
                 cout << "输入Y继续，否则退出游戏:\n"; cin >> op;
@@ -33,14 +33,15 @@ int main() {
         } else if(op == 'S') {
             Board.Save();
         } else if(op == 'R') {
-            Board.Regret(sx-1, sy-1, ex-1, ey-1, bx-1, by-1);
+            Board.Next_Turn();
+            Board.Regret(sy-1, sx-1, ey-1, ex-1, by-1, bx-1);
         } else if(op == 'H') {
             Board.Reset_Hint();
             Board.Hint();
         } else if(op == 'E') {
             return 0;
         } else if(op == 'N') {
-            Board.Reset();
+            Board.Initialize();
         }
     }
     system("pause");

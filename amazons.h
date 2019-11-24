@@ -5,6 +5,7 @@
 #include<stack>
 using namespace std;
 #define C 1 // 系数，通过调整这个改变搜索的深度与广度
+#define EPS 1e-7
 
 class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
     private:
@@ -39,6 +40,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         int uct_turnplayer;
 
         void Display();
+        void Initialize();
         void Reset();
         bool In_Board(int x, int y);
         bool Can_Move(int x, int y);
@@ -63,14 +65,9 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
                 ptrChildren[i] = 0;
             }
         }
-        ChessBoard(const ChessBoard &tree) { // 拷贝构造函数
-            if (isLeaf) return;
-            for (int i = 0; i < childNum; i++) {
-                ptrChildren[i] = new ChessBoard(*tree.ptrChildren[i]);
-            }
-        }
+        void copy(const ChessBoard &temp);
         void expand(); // 拓展叶子节点
-        void update();
+        void update(int val);
         int selectChild(); // 筛选最优子节点
         void iterate(); // 遍历博弈树
         int getBestSol(); // 返回最好的solution，格式同上
@@ -95,9 +92,7 @@ void ChessBoard::Display() { // demonstrate
     if(hinted) Reset_Hint();
 }
 
-void ChessBoard::Reset() { // initialize
-    ios::sync_with_stdio(false); // iostream加速
-    system("chcp 65001"); // 使cmd能输出UTF-8编码
+void ChessBoard::Initialize() { // initialize
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++)
             board[i][j] = 0; 
@@ -105,7 +100,13 @@ void ChessBoard::Reset() { // initialize
     board[5][0] = board[7][2] = board[5][7] = board[7][5] = WHITE;
     chess[1][0] = 2; chess[1][1] = 20; chess[1][2] = 5; chess[1][3] = 27;
     chess[2][0] = 50; chess[2][1] = 72; chess[2][2] = 57; chess[2][3] = 75;
-    turn_player = 1;
+    turn_player = BLACK;
+}
+
+void ChessBoard::Reset() { 
+    ios::sync_with_stdio(false); // iostream加速
+    system("chcp 65001"); // 使cmd能输出UTF-8编码
+    Initialize();
 }
 
 bool ChessBoard::In_Board(int x, int y) {
@@ -130,34 +131,34 @@ bool ChessBoard::Can_Move(int x, int y) {
     return ret;
 }
 
-int ChessBoard::Move(int y_start, int x_start, int y_final, int x_final, int y_block, int x_block) { // 按接口要求，需要转置
+int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block) { // 按接口要求，需要转置
     // 错误判断
-    if(board[x_start][y_start] != turn_player) {
-        //cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
-        return 11037;
-    }
     if(!In_Board(x_start, y_start) && !In_Board(x_final, y_final) && !In_Board(x_block, y_block)) {
-        //cout << "非法坐标：坐标越界！ErrorType:37510\n";
+        cout << "非法坐标：坐标越界！ErrorType:37510\n";
         return 37510;
     }
+    if(board[x_start][y_start] != turn_player) {
+        cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
+        return 11037;
+    }
     if((board[x_final][y_final] || board[x_block][y_block]) && !(x_block == x_start && y_block == y_start)) { // 特判回马枪情形
-        //cout << "非法坐标：需求坐标已被占用！ErrorType:23333\n";
+        cout << "非法坐标：需求坐标已被占用！ErrorType:23333\n";
         return 23333;
     }
     int deltax = abs(x_final - x_start), deltay = abs(y_final - y_start);
     if(!(deltax == 0) && !(deltay == 0) && !(deltax == deltay)) { // 移动合法性判断
-        //cout << "非法移动：棋子移动方法不在8个方向上！ErrorType:88888\n";
+        cout << "非法移动：棋子移动方法不在8个方向上！ErrorType:88888\n";
         return 88888;
     }
     deltax = abs(x_block - x_final), deltay = abs(y_block - y_final);
     if(!(deltax == 0) && !(deltay == 0) && !(deltax == deltay)) { // 障碍物合法性判断
-        //cout << "非法障碍：障碍物摆放方法不在8个方向上！ErrorType:10086\n";
+        cout << "非法障碍：障碍物摆放方法不在8个方向上！ErrorType:10086\n";
         return 88889;
     }
     // 坐 标 移 动
     int chessidx = 0;
     for(;chessidx<4;chessidx++) {if(chess[turn_player][chessidx] == x_start*10 + y_start) break;}
-    board[x_start][y_start] = 0; 
+    board[x_start][y_start] = EMPTY; 
     board[x_final][y_final] = turn_player;
     chess[turn_player][chessidx] = x_final*10 + y_final;
     board[x_block][y_block] = BLOCK;
@@ -218,13 +219,15 @@ void ChessBoard::Show_Menu() {
     cout << "\t\t\t> E  退出\t> N  是新游戏\t\n";
 }
 
-void ChessBoard::Regret(int y_start, int x_start, int y_final, int x_final, int y_block, int x_block) { // 按接口要求，需要转置
+void ChessBoard::Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block) { // 按接口要求，需要转置
     // 因为坐标的合法性已经在Move里验证过了，所以此处可以免去错误检测环节
     // ワタシ、再生産。
-    Next_Turn();
-    board[x_start][y_start] = turn_player; 
-    board[x_final][y_final] = 0;
-    board[x_block][y_block] = 0;
+    int chessidx = 0; // 这个也该对应地改变
+    for(;chessidx<4;chessidx++) {if(chess[turn_player][chessidx] == x_final*10 + y_final) break;}
+    chess[turn_player][chessidx] = x_start*10 + y_start;
+    board[x_final][y_final] = EMPTY;
+    board[x_block][y_block] = EMPTY;
+    board[x_start][y_start] = turn_player;  // 顺序不能变！
 }
 
 void ChessBoard::Reset_Hint() {
@@ -293,24 +296,37 @@ inline void ChessBoard::Find_Solutions() {
 }
 
 // UCT section!
+void ChessBoard::copy(const ChessBoard &temp){ // 拷贝函数，只考虑必要信息
+    for(int i=0; i<8; i++)
+        for(int j=0; j<8; j++) {
+            board[i][j] = temp.board[i][j];
+        }
+    turn_player = temp.turn_player;
+    uct_turnplayer = temp.uct_turnplayer;
+    for(int i=1; i<=2; i++)
+        for(int j=0; j<4; j++)
+            chess[i][j] = temp.chess[i][j];
+}
+
 void ChessBoard::expand() {
     if(!isLeaf) return;
     Find_Solutions();
     childNum = SolutionList.idx;
     for (int i = 0; i < childNum; i++) { // 生成所有下了可行解的棋盘
-        ptrChildren[i] = new ChessBoard(*this);
+        ptrChildren[i] = new ChessBoard();
+        ptrChildren[i]->copy(*this);
         int sol = SolutionList.solution[i];
         // 模拟下棋
-                                    //cout << sol << endl;
+        //cout << sol << endl;
         ptrChildren[i]->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
         ptrChildren[i]->Next_Turn();
     }
     if(childNum) isLeaf=false;
 }
 
-void ChessBoard::update() {
+void ChessBoard::update(int val) {
     visits++;
-    wins += win;
+    wins += val;
 }
 
 int ChessBoard::selectChild() {
@@ -319,7 +335,7 @@ int ChessBoard::selectChild() {
     for(int i=0; i<childNum; i++) { // 遍历所有子结点
         ChessBoard* ptrCurChild = ptrChildren[i]; 
         // 局面评估
-        double curScore = ptrCurChild->wins / ptrCurChild->visits + C * sqrt(log(visits + 1) / ptrCurChild->wins); 
+        double curScore = (ptrCurChild->wins + EPS) / (ptrCurChild->visits + EPS) + C * sqrt(log(visits + 1) / (ptrCurChild->wins + EPS)); // 加EPS防止除数为0的情况 
         if(curScore >= bestScore) {
             ret = i;
             bestScore = curScore;
@@ -343,17 +359,31 @@ void ChessBoard::iterate() { // 遍历
     ptrCur = ptrCur->ptrChildren[bestChild];
     visited.push(ptrCur);
     Judge_Win(); // 这里需要判断是否获胜
+    int val = win; // 记录胜负，自下而上回溯
     while (!visited.empty()) {
         ptrCur = visited.top();
-        ptrCur->update();   // 依次更新节点数值
+        ptrCur->update(val);   // 依次更新节点数值
         visited.pop();
     }
 }
 
 int ChessBoard::getBestSol() {
     uct_turnplayer = turn_player;
-    for(int i=0; i<100; i++) // 共迭代几次
-        iterate();
-    int bestSolId = selectChild();
-    return SolutionList.solution[bestSolId];
+    // for(int i=0; i<20; i++) // 共迭代几次
+        // iterate();
+    // int bestSolId = selectChild();
+    Find_Solutions();
+    for(int i=1; i<=SolutionList.idx; i++) {
+        int sol = SolutionList.solution[i];
+        int ErrorMsg = Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
+        if(ErrorMsg) {
+            cout << "sol=" << sol << "board["<<sol/100000<<"]["<<(sol/10000)%10<<"]=" << board[sol/100000][(sol/10000)%10] <<endl;
+            for(int i=0; i<4; i++) cout << chess[turn_player][i] << " ";
+            cout << endl;
+            continue;
+        }
+        Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
+    }
+    return 0;
+    // return SolutionList.solution[bestSolId];
 }
