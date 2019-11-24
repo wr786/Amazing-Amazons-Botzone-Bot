@@ -4,7 +4,7 @@
 #include<vector>
 #include<stack>
 using namespace std;
-#define C 1 // 系数，通过调整这个改变搜索的深度与广度
+#define C 1.14514 // 系数，通过调整这个改变搜索的深度与广度
 #define EPS 1e-7
 
 class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
@@ -15,6 +15,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         int dy[8] = {1, 1, 0, -1, -1, -1, 0, 1};
         int chess[3][4]; // 存取四个棋所在的xy坐标，1为黑棋，2为白棋,十位数为x，个位数为y
         bool hinted = false;
+        int last_move = 0; // 上一次移动
     public:
         // 标记
         short BLACK = 1; // 黑棋
@@ -36,7 +37,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         // 关于局面评估
         // score = wins_child / visits_child + C*sqrt(log(visits + 1) / visits_child)
         // 其中wins_child / visits_child代表胜率
-        int childNum = 2000;
+        int childNum = 0;
         int uct_turnplayer;
 
         void Initialize();
@@ -212,16 +213,26 @@ void ChessBoard::expand() {
     if(!isLeaf) return;
     Find_Solutions();
     childNum = SolutionList.idx;
-    int idx = 0;
-    for (int i = 0; i < childNum; i++) { // 生成所有下了可行解的棋盘
-        ptrChildren[i] = new ChessBoard();
-        ptrChildren[i]->copy(*this);
-        int sol = SolutionList.solution[i+1]; // 统一下标格式
+    int idx = 0, sol;
+    for (int i = 1; i <= SolutionList.idx; i++) { // 生成所有下了可行解的棋盘
+        ptrChildren[idx] = new ChessBoard();
+        ptrChildren[idx]->copy(*this);
+        sol = SolutionList.solution[i];
+        while(sol == 0 && i < SolutionList.idx) {
+            i++;
+            sol = SolutionList.solution[i];
+            if(i == SolutionList.idx) {
+                break;
+            }
+        }
         // 模拟下棋
         //cout << sol << endl;
-        ptrChildren[i]->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
-        ptrChildren[i]->Next_Turn();
+        ptrChildren[idx]->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
+        ptrChildren[idx]->last_move = sol;
+        ptrChildren[idx]->Next_Turn();
+        if(i<SolutionList.idx) idx++;
     }
+    childNum = idx;
     if(childNum) isLeaf=false;
 }
 
@@ -236,7 +247,7 @@ int ChessBoard::selectChild() {
     for(int i=0; i<childNum; i++) { // 遍历所有子结点
         ChessBoard* ptrCurChild = ptrChildren[i]; 
         // 局面评估
-        double curScore = (ptrCurChild->wins + EPS) / (ptrCurChild->visits + EPS) + C * sqrt(log(visits + 1) / (ptrCurChild->wins + EPS)); // 加EPS防止除数为0的情况 
+        double curScore = ptrCurChild->wins / (ptrCurChild->visits + EPS) + C * sqrt(log(visits + 1) / (ptrCurChild->visits + EPS)); // 加EPS防止除数为0的情况 
         if(curScore >= bestScore) {
             ret = i;
             bestScore = curScore;
@@ -259,21 +270,28 @@ void ChessBoard::iterate() { // 遍历
     bestChild = ptrCur->selectChild();
     ptrCur = ptrCur->ptrChildren[bestChild];
     visited.push(ptrCur);
-    Judge_Win(); // 这里需要判断是否获胜
+    bool flag = Judge_Win(); // 这里需要判断是否获胜
     int val = win; // 记录胜负，自下而上回溯
-    while (!visited.empty()) {
+    if(flag) {
+        while (!visited.empty()) {
         ptrCur = visited.top();
-        ptrCur->update(val);   // 依次更新节点数值
+        ptrCur->update(val*100);   // 依次更新节点数值，并进行放大操作
         visited.pop();
+        }
     }
 }
 
 int ChessBoard::getBestSol() {
     uct_turnplayer = turn_player;
-    for(int i=0; i<40; i++) // 共迭代几次
+    for(int i=0; i<30; i++) // 共迭代几次 通过调整这个控制时间
         iterate();
     int bestSolId = selectChild();
-    return SolutionList.solution[bestSolId];
+    // int bestSolId = 0;
+    // for(int i=1; i<childNum; i++) {
+    //     if(ptrChildren[childNum]->wins && ptrChildren[childNum]->visits > ptrChildren[bestSolId]->visits) // 访问次数最多的即为最优解
+    //         bestSolId = childNum;
+    // }
+    return ptrChildren[bestSolId]->last_move;
 }
 
 int main() {
