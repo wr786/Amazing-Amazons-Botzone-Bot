@@ -232,6 +232,11 @@ void ChessBoard::copy(const ChessBoard &temp){ // 拷贝函数，只考虑必要
 
 void ChessBoard::expand() {
     if(!isLeaf) return;
+    if(win) {
+        isLeaf = true;
+        childNum = 0;
+        return;
+    }
     Find_Solutions();
     childNum = SolutionList.idx;
     int idx = 0, sol;
@@ -264,6 +269,7 @@ void ChessBoard::update(int val) {
 }
 
 int ChessBoard::selectChild() {
+    if(win) return -1;
     int ret = 0;
     double bestScore = -786554453;
     for(int i=0; i<childNum; i++) { // 遍历所有子结点
@@ -283,7 +289,7 @@ void ChessBoard::iterate() { // 遍历
     ChessBoard* ptrCur = this;
     visited.push(this);
     int bestChild = 0; // 选取最优的子节点
-    while (!ptrCur->isLeaf) {
+    while (!ptrCur->isLeaf && !ptrCur->win) {
         bestChild = ptrCur->selectChild();
         ptrCur = ptrCur->ptrChildren[bestChild];
         visited.push(ptrCur);
@@ -292,10 +298,11 @@ void ChessBoard::iterate() { // 遍历
     bestChild = ptrCur->selectChild();
     ptrCur = ptrCur->ptrChildren[bestChild];
     visited.push(ptrCur);
-    int addscore = judgeScore();
+    ptrCur->Judge_Win();
+    int addscore = ptrCur->judgeScore() + win * 786554453; // 给获胜分支加权放大
     while (!visited.empty()) {
         ptrCur = visited.top();
-        ptrCur->update(addscore);   // 依次更新节点数值，并进行放大操作
+        ptrCur->update(addscore);   // 依次更新节点数值
         visited.pop();
     }
 }
@@ -310,7 +317,8 @@ int ChessBoard::getBestSol() {
     //     if(ptrChildren[childNum]->wins && ptrChildren[childNum]->visits > ptrChildren[bestSolId]->visits) // 访问次数最多的即为最优解
     //         bestSolId = childNum;
     // }
-    return ptrChildren[bestSolId]->last_move;
+    if(bestSolId != -1) return ptrChildren[bestSolId]->last_move;
+    else return -1;
 }
 
 void ChessBoard::kingMove(int color, int kingdist[8][8]) {
