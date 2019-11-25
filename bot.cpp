@@ -439,7 +439,7 @@ int ChessBoard::judgeScore() {
     } else {
         ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2]*(m_b-m_w);
     }
-    if(turn_player == BLACK) return ret;
+    if(uct_turnplayer == BLACK) return ret;
     else return -ret;
 }
 
