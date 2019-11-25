@@ -136,7 +136,7 @@ bool ChessBoard::Can_Move(int x, int y) {
 
 int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block) { // 按接口要求，需要转置
     // 错误判断
-    if(!In_Board(x_start, y_start) && !In_Board(x_final, y_final) && !In_Board(x_block, y_block)) {
+    if(!In_Board(x_start, y_start) || !In_Board(x_final, y_final) || !In_Board(x_block, y_block)) {
         //cout << "非法坐标：坐标越界！ErrorType:37510\n";
         return 37510;
     }

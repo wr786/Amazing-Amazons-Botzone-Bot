@@ -15,10 +15,10 @@ int main() {
     while(!(winner = Board.Judge_Win())) {
         Board.Display(); 
         // DEBUG用！！
-        clock_t startTime = clock();
-        cout << "BestSol:" << Board.getBestSol()<< endl;
-        clock_t endTime = clock();
-        cout << "在" << double(endTime - startTime) / CLOCKS_PER_SEC << "s内生成了BestSol" << endl;
+        // clock_t startTime = clock();
+        // cout << "BestSol:" << Board.getBestSol()<< endl;
+        // clock_t endTime = clock();
+        // cout << "在" << double(endTime - startTime) / CLOCKS_PER_SEC << "s内生成了BestSol" << endl;
         // DEBUG用！！
         Board.Show_Menu(); cin >> op;
         if(op == 'M') {
