@@ -7,7 +7,7 @@
 #include<queue>
 using namespace std;
 #define C 0.618 // 系数，通过调整这个改变搜索的深度与广度
-#define EPS 1e-7
+#define EPS 1e-4
 
 // 局面评估函数待优化！
 
@@ -64,7 +64,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         }
         void copy(const ChessBoard &temp);
         void expand(); // 拓展叶子节点
-        void update(int val);
+        void update(double val);
         int selectChild(); // 筛选最优子节点
         void iterate(); // 遍历博弈树
         int getBestSol(); // 返回最好的solution，格式同上
@@ -73,16 +73,21 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         // p1、p2代表位置position的特征值，判断走法相对空格的优劣
         // m是灵活性的评估值
         // k1、k2、k3、k4、k5为参数
-        int judgeScore();
+        float judgeScore();
         void kingMove(int color, int kingdist[8][8]); // 评估函数用
         void queenMove(int color, int queendist[8][8]);
-        int firstbonus = 0.2; // 先手优势
+        float firstbonus = 0.2; // 先手优势
         int turns = 0; // 第几回合
-        float k1[3] = {0.14, 0.30, 0.80};
-        float k2[3] = {0.37, 0.25, 0.10};
-        float k3[3] = {0.13, 0.20, 0.05};
-        float k4[3] = {0.13, 0.20, 0.05};
-        float k5[3] = {0.20, 0.05, 0.03};
+        // float k1[3] = {0.13, 0.30, 0.80};
+        // float k2[3] = {0.37, 0.25, 0.10};
+        // float k3[3] = {0.13, 0.20, 0.05};
+        // float k4[3] = {0.13, 0.20, 0.05};
+        // float k5[3] = {0.20, 0.05, 0.00};
+        float k1[23]={0.1080,0.1080,0.1235,0.1332,0.1400,0.1468,0.1565,0.1720,0.1949,0.2217,0.2476,0.2680,0.2800,0.2884,0.3000,0.3208,0.3535,0.4000,0.4613,0.5350,0.6181,0.7075,0.8000};
+        float k2[23]={0.3940,0.3940,0.3826,0.3753,0.3700,0.3647,0.3574,0.3460,0.3294,0.3098,0.2903,0.2740,0.2631,0.2559,0.2500,0.2430,0.2334,0.2200,0.2020,0.1800,0.1550,0.1280,0.1000};
+        float k3[23]={0.1160,0.1160,0.1224,0.1267,0.1300,0.1333,0.1376,0.1440,0.1531,0.1640,0.1754,0.1860,0.1944,0.1995,0.2000,0.1950,0.1849,0.1700,0.1510,0.1287,0.1038,0.0773,0.0500};
+        float k4[23]={0.1160,0.1160,0.1224,0.1267,0.1300,0.1333,0.1376,0.1440,0.1531,0.1640,0.1754,0.1860,0.1944,0.1995,0.2000,0.1950,0.1849,0.1700,0.1510,0.1287,0.1038,0.0773,0.0500};
+        float k5[23]={0.2300,0.2300,0.2159,0.2067,0.2000,0.1933,0.1841,0.1700,0.1496,0.1254,0.1010,0.0800,0.0652,0.0557,0.0500,0.0464,0.0436,0.0400,0.0346,0.0274,0.0190,0.0097,0};
 };
 
 void ChessBoard::Initialize() { // initialize
@@ -265,7 +270,7 @@ void ChessBoard::expand() {
     if(childNum) isLeaf=false;
 }
 
-void ChessBoard::update(int val) {
+void ChessBoard::update(double val) {
     visits++;
     score += val;
 }
@@ -302,7 +307,7 @@ void ChessBoard::iterate() { // 遍历
         visited.push(ptrCur);
         ptrCur->Judge_Win();
     }
-    int addscore = ptrCur->judgeScore();
+    double addscore = ptrCur->judgeScore();
     while (!visited.empty()) {
         ptrCur = visited.top();
         ptrCur->update(addscore);   // 依次更新节点数值
@@ -317,7 +322,7 @@ int ChessBoard::getBestSol() {
         Find_Solutions();
         return SolutionList.solution[1];
     }
-    for(int i=0; i<88; i++) // 共迭代几次 通过调整这个控制时间
+    for(int i=0; i<77; i++) // 共迭代几次 通过调整这个控制时间
         iterate();
     int bestSolId = selectChild();
     // int bestSolId = 0;
@@ -386,7 +391,7 @@ int POW(int base,int num) // 快速幂
 	return ans;
 }
 
-int ChessBoard::judgeScore() {
+float ChessBoard::judgeScore() {
     // 计算territory值   默认是黑色→白色
     int k_b[8][8], q_b[8][8], k_w[8][8], q_w[8][8]; // 黑方与白方的kingmove与queenmove值数组
     kingMove(BLACK, k_b); kingMove(WHITE, k_w);
@@ -427,7 +432,7 @@ int ChessBoard::judgeScore() {
     // 计算黑棋
     for(int idx=0; idx<4; idx++) { // 第idx个棋
         for (int dir=0; dir<8; dir++) { // 向8个方向
-            for(int step = 1;step < 8;step++) { // 步长
+            for(int step = 1; step < 8; step++) { // 步长
                 int nx = chess[BLACK][idx] / 10 + dx[dir]*step, ny = chess[BLACK][idx] % 10 + dy[dir]*step;
                 if (In_Board(nx, ny) && board[nx][ny] == EMPTY && q_b[nx][ny] != 786554453) { //判断是否可以移动
                     m_b += (float)emptyNearby[nx][ny] / (float)step;
@@ -438,7 +443,7 @@ int ChessBoard::judgeScore() {
     // 计算白棋
     for(int idx=0; idx<4; idx++) { // 第idx个棋
         for (int dir=0; dir<8; dir++) { // 向8个方向
-            for(int step = 1;step < 8;step++) { // 步长
+            for(int step = 1; step < 8; step++) { // 步长
                 int nx = chess[WHITE][idx] / 10 + dx[dir]*step, ny = chess[WHITE][idx] % 10 + dy[dir]*step;
                 if (In_Board(nx, ny) && board[nx][ny] == EMPTY && q_w[nx][ny] != 786554453) { //判断是否可以移动
                     m_w += (float)emptyNearby[nx][ny] / (float)step;
@@ -448,12 +453,10 @@ int ChessBoard::judgeScore() {
     }
     // 计算score
     float ret = 0;
-    if(turns < 15) {
-        ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0]*(m_b-m_w);
-    } else if(turns < 30) {
-        ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1]*(m_b-m_w);
+    if(turns < 23) {
+        ret = k1[turns] * t1 + k2[turns] * t2 + k3[turns] * p1 + k4[turns] * p2 + k5[turns]*(m_b-m_w);
     } else {
-        ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2]*(m_b-m_w);
+        ret = k1[22] * t1 + k2[22] * t2 + k3[22] * p1 + k4[22] * p2 + k5[22]*(m_b-m_w);
     }
     if(uct_turnplayer == BLACK) return ret;
     else return -ret;
@@ -476,6 +479,7 @@ int main() {
         Board.Move(y_start, x_start, y_final, x_final, y_block, x_block); // 适应接口，需要换序
         Board.Next_Turn();
     }
+    Board.turns = turn_num;
     int sol = Board.getBestSol();
     cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     return 0;
