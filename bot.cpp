@@ -6,7 +6,7 @@
 #include<stack>
 #include<queue>
 using namespace std;
-#define C 1.14514 // 系数，通过调整这个改变搜索的深度与广度
+#define C 0.618 // 系数，通过调整这个改变搜索的深度与广度
 #define EPS 1e-7
 
 // 局面评估函数待优化！
@@ -82,7 +82,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         float k2[3] = {0.37, 0.25, 0.10};
         float k3[3] = {0.13, 0.20, 0.05};
         float k4[3] = {0.13, 0.20, 0.05};
-        float k5[3] = {0.20, 0.05, 0.00};
+        float k5[3] = {0.20, 0.05, 0.03};
 };
 
 void ChessBoard::Initialize() { // initialize
@@ -168,10 +168,12 @@ bool ChessBoard::Judge_Win() {
     locked[WHITE][0] = (locked[WHITE][1] && locked[WHITE][2] && locked[WHITE][3] && locked[WHITE][4]);
     if(locked[BLACK][0]) {
         if(uct_turnplayer == WHITE) win = 1;
+        else win = -1;
         //Display();
         //cout << "胜者是白方○！\n";
     } else if(locked[WHITE][0]) {
         if(uct_turnplayer == BLACK) win = 1;
+        else win = -1;
         //Display();
         //cout << "胜者是黑方●！\n";
     } else return false;
@@ -269,7 +271,6 @@ void ChessBoard::update(int val) {
 }
 
 int ChessBoard::selectChild() {
-    if(win) return -1;
     int ret = 0;
     double bestScore = -786554453;
     for(int i=0; i<childNum; i++) { // 遍历所有子结点
@@ -294,12 +295,14 @@ void ChessBoard::iterate() { // 遍历
         ptrCur = ptrCur->ptrChildren[bestChild];
         visited.push(ptrCur);
     } // 跳出这里时，ptrCur已经是叶子节点
-    ptrCur->expand();
-    bestChild = ptrCur->selectChild();
-    ptrCur = ptrCur->ptrChildren[bestChild];
-    visited.push(ptrCur);
-    ptrCur->Judge_Win();
-    int addscore = ptrCur->judgeScore() + win * 78653; // 给获胜分支加权放大
+    if(!ptrCur->win) {
+        ptrCur->expand();
+        bestChild = ptrCur->selectChild();
+        ptrCur = ptrCur->ptrChildren[bestChild];
+        visited.push(ptrCur);
+        ptrCur->Judge_Win();
+    }
+    int addscore = ptrCur->judgeScore();
     while (!visited.empty()) {
         ptrCur = visited.top();
         ptrCur->update(addscore);   // 依次更新节点数值
@@ -309,14 +312,19 @@ void ChessBoard::iterate() { // 遍历
 
 int ChessBoard::getBestSol() {
     uct_turnplayer = turn_player;
-    for(int i=0; i<80; i++) // 共迭代几次 通过调整这个控制时间
-        iterate();
-    //int bestSolId = selectChild();
-    int bestSolId = 0;
-    for(int i=1; i<childNum; i++) {
-        if(ptrChildren[childNum]->score && ptrChildren[childNum]->visits > ptrChildren[bestSolId]->visits) // 访问次数最多的即为最优解
-            bestSolId = childNum;
+    Judge_Win();
+    if(win) {
+        Find_Solutions();
+        return SolutionList.solution[1];
     }
+    for(int i=0; i<88; i++) // 共迭代几次 通过调整这个控制时间
+        iterate();
+    int bestSolId = selectChild();
+    // int bestSolId = 0;
+    // for(int i=1; i<childNum; i++) {
+    //     if(ptrChildren[childNum]->score && ptrChildren[childNum]->visits > ptrChildren[bestSolId]->visits) // 访问次数最多的即为最优解
+    //         bestSolId = childNum;
+    // }
     if(bestSolId != -1) return ptrChildren[bestSolId]->last_move;
     else return -1;
 }
@@ -440,9 +448,9 @@ int ChessBoard::judgeScore() {
     }
     // 计算score
     float ret = 0;
-    if(turns < 20) {
+    if(turns < 15) {
         ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0]*(m_b-m_w);
-    } else if(turns < 50) {
+    } else if(turns < 30) {
         ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1]*(m_b-m_w);
     } else {
         ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2]*(m_b-m_w);
@@ -461,7 +469,7 @@ int main() {
     else {
         Board.turn_player = 1;
         Board.Move(y_start, x_start, y_final, x_final, y_block, x_block); // 适应接口，需要换序
-        Board.turn_player = 2;
+        Board.Next_Turn();
     }
     for(int i=1; i<=2*(turn_num-1); i++) {
         cin >> x_start >> y_start >> x_final >> y_final >> x_block >> y_block;
