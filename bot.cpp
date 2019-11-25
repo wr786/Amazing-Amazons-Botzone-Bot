@@ -299,7 +299,7 @@ void ChessBoard::iterate() { // 遍历
     ptrCur = ptrCur->ptrChildren[bestChild];
     visited.push(ptrCur);
     ptrCur->Judge_Win();
-    int addscore = ptrCur->judgeScore() + win * 786554453; // 给获胜分支加权放大
+    int addscore = ptrCur->judgeScore() + win * 78653; // 给获胜分支加权放大
     while (!visited.empty()) {
         ptrCur = visited.top();
         ptrCur->update(addscore);   // 依次更新节点数值
@@ -311,12 +311,12 @@ int ChessBoard::getBestSol() {
     uct_turnplayer = turn_player;
     for(int i=0; i<80; i++) // 共迭代几次 通过调整这个控制时间
         iterate();
-    int bestSolId = selectChild();
-    // int bestSolId = 0;
-    // for(int i=1; i<childNum; i++) {
-    //     if(ptrChildren[childNum]->wins && ptrChildren[childNum]->visits > ptrChildren[bestSolId]->visits) // 访问次数最多的即为最优解
-    //         bestSolId = childNum;
-    // }
+    //int bestSolId = selectChild();
+    int bestSolId = 0;
+    for(int i=1; i<childNum; i++) {
+        if(ptrChildren[childNum]->score && ptrChildren[childNum]->visits > ptrChildren[bestSolId]->visits) // 访问次数最多的即为最优解
+            bestSolId = childNum;
+    }
     if(bestSolId != -1) return ptrChildren[bestSolId]->last_move;
     else return -1;
 }
