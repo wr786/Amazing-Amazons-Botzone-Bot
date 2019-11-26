@@ -79,6 +79,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         float k3[3] = {0.13, 0.20, 0.05};
         float k4[3] = {0.13, 0.20, 0.05};
         float k5[3] = {0.20, 0.05, 0.00};
+        //float k5[3] = {0.30, 0.10, 0.00};
 };
 
 void ChessBoard::Initialize() { // initialize
@@ -260,12 +261,12 @@ inline int ChessBoard::getRndSol(ChessBoard *Node, int color) { // 随机Roll一
         for (int dir1 = 0; dir1 < 8; dir1++) { 
             // rnd_dir1才是是随机出来的方向
             int rnd_dir1 = list2[dir1], CNT = 0;  // CNT为第一步步法计数
-            int retsol; // 返回值
+            int retsol = -111111; // 返回值
             x_final = x_start + dx[rnd_dir1], y_final = y_start + dy[rnd_dir1];
             while(In_Board(x_final, y_final) && board[x_final][y_final] == EMPTY) {
                 for (int dir2 = 0; dir2 < 8; dir2++) {
                 int rnd_dir2 = list3[dir2], cnt = 0;  //cnt为第二步步法计数
-                int sol;
+                int sol = -111111;
                 x_block = x_final + dx[rnd_dir2], y_block = y_final + dy[rnd_dir2];
                 while(In_Board(x_block, y_block) && (board[x_block][y_block] == EMPTY || (x_block == x_start && y_block == y_start))) {
                     // 找到了一个sol
@@ -346,8 +347,8 @@ int POW(int base,int num) { // 快速幂
 inline double ChessBoard::evaluate() {
     stack<int> remem; // 记忆步法，以便还原棋局
     int tmpcolor = turn_player, SIM; // 暂时存储当前颜色与模拟次数
-    if (turn_player == uct_turnplayer) SIM = 4;
-    else SIM = 3;
+    if (turn_player == uct_turnplayer) SIM = 6;
+    else SIM = 5;
     // 模拟SIM次后再进行评估
     for (int sim = 0; sim < SIM; sim++) {
         int sol = getRndSol(nullptr, tmpcolor);
@@ -459,7 +460,7 @@ ChessBoard* ChessBoard::select() {
     for (int i=0; i<childNum; i++) { // 遍历每个子节点
     	ChessBoard* c = child[i];
         // 这里的0.35是常数C，可以修改来改变搜索的深度与广度
-        double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : 0.35 * sqrt(log(visits) / c->visits));
+        double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : -c->score / c->visits) + 0.35 * sqrt(log(visits) / c->visits);
         if (curScore > bestScore) {
             ret = c;
             bestScore = curScore;
@@ -492,10 +493,11 @@ void ChessBoard::UCTSearch() {
     while (cur->fullyExpand() && !cur->isEnd()) {
         cur = cur->select();
         // 模拟移动
-        int sol = cur->last_move;
+        // int sol = cur->last_move;
         // 注意，这里move的不是子节点！
         // 这里需不需要Next_Turn待定！
-        Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - cur->turn_player);
+        // 尝试不模拟棋盘移动，实际上这好像毫无意义
+        //Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - cur->turn_player);
         //记录走过的位点
         visited.push_back(cur);
     }
@@ -510,13 +512,14 @@ void ChessBoard::UCTSearch() {
 	        visited[i]->score += visited[(int)visited.size() - 1]->score; // 加上叶子节点的score
         }
     }
-    //恢复棋盘
-    for (int i = (int)visited.size() - 2; i >= 1; i--) { // 最后一个并没有改变棋盘
-        int sol = visited[i]->last_move;
-        // 这里需不需要Next_Turn待定！
-        Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - visited[i]->turn_player);
-    }
-    }
+    // 这好像毫无意义
+    // 恢复棋盘
+    // for (int i = (int)visited.size() - 2; i >= 1; i--) { // 最后一个并没有改变棋盘
+    //     int sol = visited[i]->last_move;
+    //     // 这里需不需要Next_Turn待定！
+    //     Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - visited[i]->turn_player);
+    // }
+}
 
 inline bool ChessBoard::fullyExpand() { // 此结点是否已经完全扩展
     if (SolutionList.idx == 0) Find_Solutions();
@@ -546,6 +549,7 @@ int main() {
         Board.Move(y_start, x_start, y_final, x_final, y_block, x_block); // 适应接口，需要换序
         Board.Next_Turn();
     }
+    Board.uct_turnplayer = Board.turn_player; // 不加这行就全帮先手打工了
     Board.turns = turn_num;
     srand(time(NULL)); // 重置随机数种子
     auto start = (double)clock(); // 进行计时，防止超时并能进行最深的迭代次数
@@ -553,10 +557,22 @@ int main() {
     while ((double)clock() - start < (turn_num == 1 ? 1.92 : 0.92) * CLOCKS_PER_SEC)
         Board.UCTSearch();
     // 输出结果
-    ChessBoard* result = Board.select();
-    if (result != nullptr) {
-        int sol = result->last_move;
-        cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
-    } else cout << "-1 -1 -1 -1 -1 -1\n"; // 特判以防程序崩溃
+    // ChessBoard* result = Board.select();
+    // if (result != nullptr) {
+    //     int sol = result->last_move;
+    //     cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
+    // } else cout << "-1 -1 -1 -1 -1 -1\n"; // 特判以防程序崩溃
+    // 输出visit次数最多的结果（MCTS核心算法）
+    if(Board.childNum == 0) cout << "-1 -1 -1 -1 -1 -1\n";
+    else {
+    	int bestidx = 0;
+    	for (int i=1; i<Board.childNum; i++) { // 遍历每个子节点
+	        if (Board.child[i]->visits > Board.child[bestidx]->visits) {
+	            bestidx = i;
+	        }
+	    }
+	    int sol = Board.child[bestidx]->last_move;
+	    cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
+    }
     return 0;
 }
