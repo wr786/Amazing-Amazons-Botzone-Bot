@@ -347,8 +347,16 @@ int POW(int base,int num) { // 快速幂
 inline double ChessBoard::evaluate() {
     stack<int> remem; // 记忆步法，以便还原棋局
     int tmpcolor = turn_player, SIM; // 暂时存储当前颜色与模拟次数
-    if (turn_player == uct_turnplayer) SIM = 6;
-    else SIM = 5;
+    if (turn_player == uct_turnplayer) {
+        if(turns <= 20) SIM = 2;
+        else if(turns < 50) SIM = 4;
+        else SIM = 6;
+    }
+    else {
+        if(turns <= 20) SIM = 1;
+        else if(turns < 50) SIM = 3;
+        else SIM = 5;
+    }
     // 模拟SIM次后再进行评估
     for (int sim = 0; sim < SIM; sim++) {
         int sol = getRndSol(nullptr, tmpcolor);
