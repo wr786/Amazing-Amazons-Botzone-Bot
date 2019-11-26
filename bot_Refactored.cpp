@@ -456,7 +456,8 @@ ChessBoard* ChessBoard::select() {
     ChessBoard* ret = nullptr;
     double bestScore = -786554453;
     // Minimax选择：如果这一步是对方下就选最小的，否则选最大的。
-    for (ChessBoard* c : child) { // 遍历每个子节点
+    for (int i=0; i<childNum; i++) { // 遍历每个子节点
+    	ChessBoard* c = child[i];
         // 这里的0.35是常数C，可以修改来改变搜索的深度与广度
         double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : 0.35 * sqrt(log(visits) / c->visits));
         if (curScore > bestScore) {
@@ -549,7 +550,7 @@ int main() {
     srand(time(NULL)); // 重置随机数种子
     auto start = (double)clock(); // 进行计时，防止超时并能进行最深的迭代次数
     // 第一轮2秒，否则1秒
-    while ((double)clock() - start < (turn_num == 1 ? 1.90 : 0.90) * CLOCKS_PER_SEC)
+    while ((double)clock() - start < (turn_num == 1 ? 1.92 : 0.92) * CLOCKS_PER_SEC)
         Board.UCTSearch();
     // 输出结果
     ChessBoard* result = Board.select();
