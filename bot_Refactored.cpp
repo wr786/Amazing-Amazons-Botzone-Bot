@@ -51,9 +51,9 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         void Next_Turn();
         // 用来寻找所有可以落子和放障碍物的点 面向AI寻找可行解使用
         // 其中SolutionList存放的每个Solution均为一个整数，每位数依次为 起始点x、y，终点x、y，障碍点x、y
-        inline void Find_Possible_Move(int xy);
-        inline void Find_Possible_Block(int xy_start, int xy_final);
-        inline void Find_Solutions();
+        inline void Find_Possible_Move(int xy, int color);
+        inline void Find_Possible_Block(int xy_start, int xy_final, int color);
+        inline void Find_Solutions(int color);
         // UCT(MCTS) section!
         ChessBoard* child[2001];  //子结点
         int childNum = 0;
@@ -84,7 +84,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
 void ChessBoard::Initialize() { // initialize
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++)
-            board[i][j] = 0; 
+            board[i][j] = EMPTY; 
     board[0][2] = board[2][0] = board[0][5] = board[2][7] = BLACK;
     board[5][0] = board[7][2] = board[5][7] = board[7][5] = WHITE;
     chess[1][0] = 2; chess[1][1] = 20; chess[1][2] = 5; chess[1][3] = 27;
@@ -120,14 +120,20 @@ bool ChessBoard::Can_Move(int x, int y) {
 }
 
 int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color = -1) { // 按接口要求，需要转置
-    if(color == -1) color = turn_player;
+    if(color == -1) {
+    	color = turn_player;
+    }
     // 错误判断
     if(!In_Board(x_start, y_start) || !In_Board(x_final, y_final) || !In_Board(x_block, y_block)) {
         cout << "非法坐标：坐标越界！ErrorType:37510\n";
         return 37510;
     }
-    if(board[x_start][y_start] != turn_player) {
+    if(board[x_start][y_start] != color) {
         cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
+        // DEBUG
+        cout << x_start << y_start << " : " << board[x_start][y_start] << endl;
+       	for(int i=0; i<4; i++)
+       		cout << chess[color][i];
         //cout << "board[" << x_start << "][" << y_start << "] = " << board[x_start][y_start];
         return 11037;
     }
@@ -194,10 +200,10 @@ void ChessBoard::Next_Turn() {
     turns++; // 进行了一回合
 }
 
-inline void ChessBoard::Find_Possible_Block(int xy_start, int xy_final) {
+inline void ChessBoard::Find_Possible_Block(int xy_start, int xy_final, int color) {
     // 搜索常用套路
     board[xy_start/10][xy_start%10] = EMPTY;
-    board[xy_final/10][xy_final%10] = turn_player;
+    board[xy_final/10][xy_final%10] = color;
     for(int dir=0; dir<8; dir++) {
         int x_tmp = xy_final/10 + dx[dir], y_tmp = xy_final%10 + dy[dir]; // 故 技 重 施
         while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY) { // 在能够落子之后还能放障碍物，那么这就相当于一个Solution
@@ -206,24 +212,25 @@ inline void ChessBoard::Find_Possible_Block(int xy_start, int xy_final) {
             x_tmp += dx[dir], y_tmp += dy[dir];
         }
     }
-    board[xy_start/10][xy_start%10] = turn_player;
+    board[xy_start/10][xy_start%10] = color;
     board[xy_final/10][xy_final%10] = EMPTY;
 }
 
-inline void ChessBoard::Find_Possible_Move(int xy) {
+inline void ChessBoard::Find_Possible_Move(int xy, int color) {
     for(int dir=0; dir<8; dir++) {
         int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
         while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY) { // 能够落子
-            Find_Possible_Block(xy, x_tmp*10 + y_tmp);
+            Find_Possible_Block(xy, x_tmp*10 + y_tmp, color);
             x_tmp += dx[dir], y_tmp += dy[dir];
         }
     }
 }
 
-inline void ChessBoard::Find_Solutions() {
+inline void ChessBoard::Find_Solutions(int color = -1) {
+	if(color == -1) color = turn_player;
     SolutionList.idx = 0;
     for(int idx=0; idx<4; idx++) {
-        Find_Possible_Move(chess[turn_player][idx]);
+        Find_Possible_Move(chess[color][idx], color);
     }
 }
 
@@ -428,14 +435,14 @@ inline double ChessBoard::evaluate() {
     // 复原棋盘
     while(!remem.empty()) {
         int sol = remem.top();
+        tmpcolor = 3 - tmpcolor; // 需要先写这个
         Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, tmpcolor);
-        tmpcolor = 3 - tmpcolor;
         remem.pop();
     }
     //分段评估
-    if (turns <= 20)
+    if (turns + SIM <= 20)
         ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
-    else if (turns < 50)
+    else if (turns + SIM < 50)
         ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m;
     else
         ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m;
@@ -467,9 +474,9 @@ ChessBoard* ChessBoard::expand() {
     ChessBoard* node = new ChessBoard;
     node->copy(*this);
     node->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
+    node->Next_Turn(); // 注意顺序
     node->last_move = sol;
-    node->score = evaluate();
-    node->Next_Turn();
+    node->score = node->evaluate();
     child[childNum++] = node;
     AlreadyMoved.insert(sol); // 避免再次随机到同一个
     return node;
@@ -477,7 +484,7 @@ ChessBoard* ChessBoard::expand() {
 
 // 蒙特卡洛搜索主函数
 void ChessBoard::UCTSearch() {
-    vector<ChessBoard *> visited; // 不用queue是因为要遍历两次
+    vector<ChessBoard*> visited; // 不用queue是因为要遍历两次
     ChessBoard* cur = this;
     visited.push_back(cur);
     // 结点已经被完全扩展而且不是最后结点，就向下继续模拟
@@ -487,7 +494,7 @@ void ChessBoard::UCTSearch() {
         int sol = cur->last_move;
         // 注意，这里move的不是子节点！
         // 这里需不需要Next_Turn待定！
-        Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - turn_player);
+        Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - cur->turn_player);
         //记录走过的位点
         visited.push_back(cur);
     }
@@ -498,15 +505,15 @@ void ChessBoard::UCTSearch() {
         visited.push_back(newNode);
         //反向传播，由于估值时已经初始化，root和新结点均不估值
         for (int i = (int)visited.size() - 2; i >= 0; i--) {
-        visited[i]->visits++; // 被访问，所以增加访问次数
-        visited[i]->score += visited[(int)visited.size() - 1]->score; // 加上叶子节点的score
+	        visited[i]->visits++; // 被访问，所以增加访问次数
+	        visited[i]->score += visited[(int)visited.size() - 1]->score; // 加上叶子节点的score
         }
     }
     //恢复棋盘
-    for (int i = (int)visited.size() - 1; i >= 1; i--) {
+    for (int i = (int)visited.size() - 2; i >= 1; i--) { // 最后一个并没有改变棋盘
         int sol = visited[i]->last_move;
         // 这里需不需要Next_Turn待定！
-        Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, -visited[i]->turn_player);
+        Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - visited[i]->turn_player);
     }
     }
 
