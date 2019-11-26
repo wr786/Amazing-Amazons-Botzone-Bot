@@ -494,9 +494,11 @@ ChessBoard* ChessBoard::expand() {
 
 // 蒙特卡洛搜索主函数
 void ChessBoard::UCTSearch() {
-    vector<ChessBoard*> visited; // 不用queue是因为要遍历两次
+    // vector<ChessBoard*> visited; // 不用queue是因为要遍历两次
+    ChessBoard* visited[201]; int visited_idx = 0; // 改用数组代替vector，试图进一步提升效率
     ChessBoard* cur = this;
-    visited.push_back(cur);
+    visited[visited_idx++] = cur;
+    // visited.push_back(cur);
     // 结点已经被完全扩展而且不是最后结点，就向下继续模拟
     while (cur->fullyExpand() && !cur->isEnd()) {
         cur = cur->select();
@@ -507,17 +509,23 @@ void ChessBoard::UCTSearch() {
         // 尝试不模拟棋盘移动，实际上这好像毫无意义
         //Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - cur->turn_player);
         //记录走过的位点
-        visited.push_back(cur);
+        visited[visited_idx++] = cur;
+        // visited.push_back(cur);
     }
     // 扩展深度
     ChessBoard* newNode = cur->expand();
     if (newNode != nullptr) { // 这个结点可以扩展（即不为叶子节点）
         //访问新结点
-        visited.push_back(newNode);
+        visited[visited_idx++] = newNode;
+        // visited.push_back(newNode);
         //反向传播，由于估值时已经初始化，root和新结点均不估值
-        for (int i = (int)visited.size() - 2; i >= 0; i--) {
-	        visited[i]->visits++; // 被访问，所以增加访问次数
-	        visited[i]->score += visited[(int)visited.size() - 1]->score; // 加上叶子节点的score
+        // for (int i = (int)visited.size() - 2; i >= 0; i--) {
+	       //  visited[i]->visits++; // 被访问，所以增加访问次数
+	       //  visited[i]->score += visited[(int)visited.size() - 1]->score; // 加上叶子节点的score
+        // }
+        for(int i=visited_idx - 2; i>=0; i--) {
+        	visited[i]->visits++;
+        	visited[i]->score += visited[visited_idx - 1]->score; // 自下而上
         }
     }
     // 这好像毫无意义
