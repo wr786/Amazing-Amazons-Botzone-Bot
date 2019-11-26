@@ -34,7 +34,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         short WHITE = 2; // 白棋
         short EMPTY = 0;
         short BLOCK = -1; // 障碍物
-        short CANGO = 6; // 可以下的点（而且可以进一步放障碍物）
+        // short CANGO = 6; // 可以下的点（而且可以进一步放障碍物）
         int turn_player; // 本回合玩家
         int win = 0; // 当前棋盘是否获胜，1为胜，否则为败
         struct SL { // 存放可行解用
@@ -74,11 +74,18 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         inline void queenMove(int color, int queendist[8][8]);
         inline double evaluate();
         // 参数列表
-        float k1[3] = {0.37, 0.25, 0.10};
-        float k2[3] = {0.14, 0.30, 0.80};
+        // 尝试另一组参数，记得和C一起改
+        float k1[3] = {0.40, 0.25, 0.10};
+        float k2[3] = {0.16, 0.30, 0.80};
         float k3[3] = {0.13, 0.20, 0.05};
         float k4[3] = {0.13, 0.20, 0.05};
-        float k5[3] = {0.20, 0.05, 0.00};
+        float k5[3] = {0.15, 0.05, 0.00};
+        // 原参数：
+        // float k1[3] = {0.37, 0.25, 0.10};
+        // float k2[3] = {0.14, 0.30, 0.80};
+        // float k3[3] = {0.13, 0.20, 0.05};
+        // float k4[3] = {0.13, 0.20, 0.05};
+        // float k5[3] = {0.20, 0.05, 0.00};
         //float k5[3] = {0.30, 0.10, 0.00};
 };
 
@@ -94,7 +101,7 @@ void ChessBoard::Initialize() { // initialize
 }
 
 void ChessBoard::Reset() { 
-    ios::sync_with_stdio(false); // iostream加速
+    // ios::sync_with_stdio(false); // iostream加速
     Initialize();
 }
 
@@ -105,19 +112,18 @@ bool ChessBoard::In_Board(int x, int y) {
 }
 
 bool ChessBoard::Can_Move(int x, int y) {
-    bool ret = false;
     for(int dir=0; dir<8; dir++) {
         int x_next = x + dx[dir];
         int y_next = y + dy[dir];
         if(!In_Board(x_next, y_next)) { // 越界判断
             continue;
         }
-        if(!board[x_next][y_next] && board[x_next][y_next] != CANGO) { // 是否被包围
-            ret = true;
-            break;
+        // if(!board[x_next][y_next] && board[x_next][y_next] != CANGO) { // 是否被包围
+        if(!board[x_next][y_next]) { // 是否被包围
+            return true;
         }
     }
-    return ret;
+    return false;
 }
 
 int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color = -1) { // 按接口要求，需要转置
@@ -131,10 +137,11 @@ int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_b
     }
     if(board[x_start][y_start] != color) {
         cout << "非法坐标：这个位置没有您的棋！ErrorType:11037\n";
-        // DEBUG
+        // for DEBUG
         cout << x_start << y_start << " : " << board[x_start][y_start] << endl;
        	for(int i=0; i<4; i++)
        		cout << chess[color][i];
+       	// for DEBUG
         //cout << "board[" << x_start << "][" << y_start << "] = " << board[x_start][y_start];
         return 11037;
     }
@@ -209,7 +216,8 @@ inline void ChessBoard::Find_Possible_Block(int xy_start, int xy_final, int colo
         int x_tmp = xy_final/10 + dx[dir], y_tmp = xy_final%10 + dy[dir]; // 故 技 重 施
         while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY) { // 在能够落子之后还能放障碍物，那么这就相当于一个Solution
             // 每个Solution均为一个整数，每位数依次为 起始点x、y，终点x、y，障碍点x、y（复读）
-            SolutionList.solution[++SolutionList.idx] = (xy_start * 1e4 + xy_final * 1e2 + x_tmp *10 + y_tmp);
+            //SolutionList.solution[++SolutionList.idx] = (xy_start * 1e4 + xy_final * 1e2 + x_tmp *10 + y_tmp);
+            SolutionList.idx++; // 只求有几个，不求别的
             x_tmp += dx[dir], y_tmp += dy[dir];
         }
     }
@@ -348,13 +356,11 @@ inline double ChessBoard::evaluate() {
     stack<int> remem; // 记忆步法，以便还原棋局
     int tmpcolor = turn_player, SIM; // 暂时存储当前颜色与模拟次数
     if (turn_player == uct_turnplayer) {
-        if(turns <= 20) SIM = 2;
-        else if(turns < 50) SIM = 4;
+      	if(turns < 50) SIM = 4;
         else SIM = 6;
     }
     else {
-        if(turns <= 20) SIM = 1;
-        else if(turns < 50) SIM = 3;
+        if(turns < 50) SIM = 3;
         else SIM = 5;
     }
     // 模拟SIM次后再进行评估
@@ -448,10 +454,11 @@ inline double ChessBoard::evaluate() {
         Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, tmpcolor);
         remem.pop();
     }
-    //分段评估
-    if (turns + SIM <= 20)
+    // 分段评估
+    // 上一个版本：turns + SIM
+    if (turns <= 20)
         ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
-    else if (turns + SIM < 50)
+    else if (turns < 50)
         ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m;
     else
         ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m;
@@ -468,6 +475,9 @@ ChessBoard* ChessBoard::select() {
     for (int i=0; i<childNum; i++) { // 遍历每个子节点
     	ChessBoard* c = child[i];
         // 这里的0.35是常数C，可以修改来改变搜索的深度与广度
+        // double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : -c->score / c->visits) + 0.35 * sqrt(log(visits) / c->visits);
+        // 尝试0.5常数C ADJUST[9]
+    	// 尝试0.35常数C
         double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : -c->score / c->visits) + 0.35 * sqrt(log(visits) / c->visits);
         if (curScore > bestScore) {
             ret = c;
@@ -551,9 +561,12 @@ inline bool ChessBoard::isEnd() { // 此结点是否还能扩展，即是否为�
 int main() {
     ChessBoard Board;
     Board.Reset();
-    int turn_num; cin >> turn_num;
+    int turn_num; 
+    // cin >> turn_num;
+    scanf("%d", &turn_num);
     int x_start, y_start, x_final, y_final, x_block, y_block;
-    cin >> x_start >> y_start >> x_final >> y_final >> x_block >> y_block;
+    scanf("%d%d%d%d%d%d", &x_start, &y_start, &x_final, &y_final, &x_block, &y_block);
+    // cin >> x_start >> y_start >> x_final >> y_final >> x_block >> y_block;
     if(x_start == -1) Board.turn_player = 1;
     else {
         Board.turn_player = 1;
@@ -561,7 +574,8 @@ int main() {
         Board.Next_Turn();
     }
     for(int i=1; i<=2*(turn_num-1); i++) {
-        cin >> x_start >> y_start >> x_final >> y_final >> x_block >> y_block;
+    	scanf("%d%d%d%d%d%d", &x_start, &y_start, &x_final, &y_final, &x_block, &y_block);
+        // cin >> x_start >> y_start >> x_final >> y_final >> x_block >> y_block;
         Board.Move(y_start, x_start, y_final, x_final, y_block, x_block); // 适应接口，需要换序
         Board.Next_Turn();
     }
@@ -570,7 +584,9 @@ int main() {
     srand(time(NULL)); // 重置随机数种子
     auto start = (double)clock(); // 进行计时，防止超时并能进行最深的迭代次数
     // 第一轮2秒，否则1秒
-    while ((double)clock() - start < (turn_num == 1 ? 1.92 : 0.92) * CLOCKS_PER_SEC)
+    // 尝试修改时限：上一次的数据为1.92/0.92
+    // 1.97/0.97将有超时可能
+    while ((double)clock() - start < (turn_num == 1 ? 1.95 : 0.95) * CLOCKS_PER_SEC)
         Board.UCTSearch();
     // 输出结果
     // ChessBoard* result = Board.select();
@@ -579,16 +595,23 @@ int main() {
     //     cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     // } else cout << "-1 -1 -1 -1 -1 -1\n"; // 特判以防程序崩溃
     // 输出visit次数最多的结果（MCTS核心算法）
-    if(Board.childNum == 0) cout << "-1 -1 -1 -1 -1 -1\n";
+    if(Board.childNum == 0) {
+    	printf("-1 -1 -1 -1 -1 -1\n");
+    	//cout << "-1 -1 -1 -1 -1 -1\n";
+    }
     else {
     	int bestidx = 0;
     	for (int i=1; i<Board.childNum; i++) { // 遍历每个子节点
 	        if (Board.child[i]->visits > Board.child[bestidx]->visits) {
 	            bestidx = i;
+	        } else if (Board.child[i]->visits == Board.child[bestidx]->visits && Board.child[i]->score > Board.child[bestidx]->score) {
+	        	// 如果访问次数是一样的，那么返回score更大的（显然此时score/visits也更大）
+	        	bestidx = i;
 	        }
 	    }
 	    int sol = Board.child[bestidx]->last_move;
-	    cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
+	    printf("%d %d %d %d %d %d\n", (sol/10000)%10, sol/100000, (sol/100)%10, (sol/1000)%10, sol%10, (sol/10)%10);
+	    // cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     }
     return 0;
 }
