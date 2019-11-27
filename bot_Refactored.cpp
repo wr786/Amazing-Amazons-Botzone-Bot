@@ -11,7 +11,6 @@
 #include<ctime>
 using namespace std;
 //#define EPS 1e-4
-#define C 0.35
 #define PERMUTATION_4_MAX 24
 #define PERMUTATION_8_MAX 40320
 // 蓄水池抽样算法预处理
@@ -81,11 +80,11 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         float k4[3] = {0.13, 0.20, 0.05};
         float k5[3] = {0.15, 0.05, 0.00};
         // 原参数：
-        // float k1[3] = {0.37, 0.25, 0.10};
-        // float k2[3] = {0.14, 0.30, 0.80};
-        // float k3[3] = {0.13, 0.20, 0.05};
-        // float k4[3] = {0.13, 0.20, 0.05};
-        // float k5[3] = {0.20, 0.05, 0.00};
+        //float k1[3] = {0.37, 0.25, 0.10};
+        //float k2[3] = {0.14, 0.30, 0.80};
+        //float k3[3] = {0.13, 0.20, 0.05};
+        //float k4[3] = {0.13, 0.20, 0.05};
+        //float k5[3] = {0.20, 0.05, 0.00};
         //float k5[3] = {0.30, 0.10, 0.00};
 };
 
@@ -418,6 +417,7 @@ inline double ChessBoard::evaluate() {
     }
     double m_b = 0, m_w = 0; // 黑棋与白棋的mobility
     double minBlack = 786554453, minWhite = 786554453; // 最小灵活度，防止过早堵死
+    double minBlack2 = 786554453, minWhite2 = 786554453; // 二阶最小灵活度，防止双堵
     // 计算黑棋
     for(int idx=0; idx<4; idx++) { // 第idx个棋
         double m_b_tmp = 0;
@@ -431,6 +431,7 @@ inline double ChessBoard::evaluate() {
         }
         m_b += m_b_tmp;
         minBlack = min(minBlack, m_b_tmp);
+        if(m_b_tmp != minBlack) minBlack2 = min(minBlack2, m_b_tmp);
     }
     // 计算白棋
     for(int idx=0; idx<4; idx++) { // 第idx个棋
@@ -445,6 +446,7 @@ inline double ChessBoard::evaluate() {
         }
         m_w += m_w_tmp;
         minWhite = min(minWhite, m_w_tmp);
+        if(m_w_tmp != minWhite) minWhite2 = min(minWhite2, m_w_tmp);
     }
     double m = m_b + minBlack - m_w - minWhite;
     // 复原棋盘
@@ -478,7 +480,8 @@ ChessBoard* ChessBoard::select() {
         // double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : -c->score / c->visits) + 0.35 * sqrt(log(visits) / c->visits);
         // 尝试0.5常数C ADJUST[9]
     	// 尝试0.35常数C
-        double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : -c->score / c->visits) + 0.35 * sqrt(log(visits) / c->visits);
+    	// 尝试0.404常数C
+        double curScore = (turn_player == uct_turnplayer ? c->score / c->visits : -c->score / c->visits) + 0.404 * sqrt(log(visits) / c->visits);
         if (curScore > bestScore) {
             ret = c;
             bestScore = curScore;
