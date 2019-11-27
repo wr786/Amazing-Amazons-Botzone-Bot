@@ -417,7 +417,6 @@ inline double ChessBoard::evaluate() {
     }
     double m_b = 0, m_w = 0; // 黑棋与白棋的mobility
     double minBlack = 786554453, minWhite = 786554453; // 最小灵活度，防止过早堵死
-    double minBlack2 = 786554453, minWhite2 = 786554453; // 二阶最小灵活度，防止双堵
     // 计算黑棋
     for(int idx=0; idx<4; idx++) { // 第idx个棋
         double m_b_tmp = 0;
@@ -431,7 +430,6 @@ inline double ChessBoard::evaluate() {
         }
         m_b += m_b_tmp;
         minBlack = min(minBlack, m_b_tmp);
-        if(m_b_tmp != minBlack) minBlack2 = min(minBlack2, m_b_tmp);
     }
     // 计算白棋
     for(int idx=0; idx<4; idx++) { // 第idx个棋
@@ -446,7 +444,6 @@ inline double ChessBoard::evaluate() {
         }
         m_w += m_w_tmp;
         minWhite = min(minWhite, m_w_tmp);
-        if(m_w_tmp != minWhite) minWhite2 = min(minWhite2, m_w_tmp);
     }
     double m = m_b + minBlack - m_w - minWhite;
     // 复原棋盘
@@ -589,7 +586,8 @@ int main() {
     // 第一轮2秒，否则1秒
     // 尝试修改时限：上一次的数据为1.92/0.92
     // 1.97/0.97将有超时可能
-    while ((double)clock() - start < (turn_num == 1 ? 1.95 : 0.95) * CLOCKS_PER_SEC)
+    // 1.95/0.95不会超时
+    while ((double)clock() - start < (turn_num == 1 ? 1.96 : 0.96) * CLOCKS_PER_SEC)
         Board.UCTSearch();
     // 输出结果
     // ChessBoard* result = Board.select();
