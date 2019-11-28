@@ -69,9 +69,8 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         void UCTSearch();
         inline bool fullyExpand();
         inline bool isEnd();
-        // inline void kingMove(int color, int kingdist[8][8]);
-        // inline void queenMove(int color, int queendist[8][8]);
-        inline void MasterMove(int color, int kingdist[8][8], int queendist[8][8]); // 合并KingMove&QueenMove
+        inline void kingMove(int color, int kingdist[8][8]);
+        inline void queenMove(int color, int queendist[8][8]);
         inline double evaluate();
         // 参数列表
         // GZ参数，记得和下面的turns一起改
@@ -80,6 +79,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         float k3[3] = {0.13, 0.20, 0.05};
         float k4[3] = {0.13, 0.20, 0.05};
         float k5[3] = {0.05, 0.05, 0.00}; // 其实和原参数只有k5_1有区别
+        float k6[3] = {0.07, 0.05, 0.00}; // 自创的dispersion参数
         // 尝试另一组参数
         // float k1[3] = {0.40, 0.25, 0.10};
         // float k2[3] = {0.16, 0.30, 0.80};
@@ -302,75 +302,45 @@ inline int ChessBoard::getRndSol(ChessBoard *Node, int color) { // 随机Roll一
     return -111111; // 等价于 -1 -1 -1 -1 -1 -1
 }
 
-// inline void ChessBoard::kingMove(int color, int kingdist[8][8]) { // 计算kingMove值
-//     queue<int> que; // int里装的是xy，意义同上
-//     for(int i=0; i<8; i++)
-//         for(int j=0; j<8; j++){
-//             kingdist[i][j] = 786554453; // INF
-//         }
-//     for(int chessidx=0; chessidx<4; chessidx++) {
-//         que.push(chess[color][chessidx]);
-//         kingdist[chess[color][chessidx]/10][chess[color][chessidx]%10] = 0;
-//         while(!que.empty()) {
-//             int xy = que.front();
-//             que.pop();
-//             for(int dir=0; dir<8; dir++) {
-//                 int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
-//                 if(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && kingdist[x_tmp][y_tmp] > kingdist[xy/10][xy%10] + 1) { // 类似最短路算法
-//                     que.push(x_tmp*10 + y_tmp);
-//                     kingdist[x_tmp][y_tmp] = kingdist[xy/10][xy%10] + 1;
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// inline void ChessBoard::queenMove(int color, int queendist[8][8]) { // 计算queenMove值
-//     queue<int> que;
-//     for(int i=0; i<8; i++)
-//         for(int j=0; j<8; j++){
-//             queendist[i][j] = 786554453; // INF
-//         }
-//     for(int chessidx=0; chessidx<4; chessidx++) {
-//         que.push(chess[color][chessidx]);
-//         queendist[chess[color][chessidx]/10][chess[color][chessidx]%10] = 0;
-//         while(!que.empty()) {
-//             int xy = que.front();
-//             que.pop();
-//             for(int dir=0; dir<8; dir++) {
-//                 int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
-//                 while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && queendist[x_tmp][y_tmp] > queendist[xy/10][xy%10] + 1) { // 类似最短路算法
-//                     que.push(x_tmp*10 + y_tmp);
-//                     queendist[x_tmp][y_tmp] = queendist[xy/10][xy%10] + 1;
-//                     x_tmp += dx[dir], y_tmp+= dy[dir];
-//                 }
-//             }
-//         }
-//     }
-// }
-
-inline void ChessBoard::MasterMove(int color, int kingdist[8][8], int queendist[8][8]) {
-	queue<int> que;
-	for(int i=0; i<8; i++) // init
-		for(int j=0; j<8; j++)
-			kingdist[i][j] = queendist[i][j] = 786554453;
-	for(int chessidx=0; chessidx<4; chessidx++) {
+inline void ChessBoard::kingMove(int color, int kingdist[8][8]) { // 计算kingMove值
+    queue<int> que; // int里装的是xy，意义同上
+    for(int i=0; i<8; i++)
+        for(int j=0; j<8; j++){
+            kingdist[i][j] = 786554453; // INF
+        }
+    for(int chessidx=0; chessidx<4; chessidx++) {
         que.push(chess[color][chessidx]);
         kingdist[chess[color][chessidx]/10][chess[color][chessidx]%10] = 0;
+        while(!que.empty()) {
+            int xy = que.front();
+            que.pop();
+            for(int dir=0; dir<8; dir++) {
+                int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
+                if(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && kingdist[x_tmp][y_tmp] > kingdist[xy/10][xy%10] + 1) { // 类似最短路算法
+                    que.push(x_tmp*10 + y_tmp);
+                    kingdist[x_tmp][y_tmp] = kingdist[xy/10][xy%10] + 1;
+                }
+            }
+        }
+    }
+}
+
+inline void ChessBoard::queenMove(int color, int queendist[8][8]) { // 计算queenMove值
+    queue<int> que;
+    for(int i=0; i<8; i++)
+        for(int j=0; j<8; j++){
+            queendist[i][j] = 786554453; // INF
+        }
+    for(int chessidx=0; chessidx<4; chessidx++) {
+        que.push(chess[color][chessidx]);
         queendist[chess[color][chessidx]/10][chess[color][chessidx]%10] = 0;
         while(!que.empty()) {
             int xy = que.front();
             que.pop();
             for(int dir=0; dir<8; dir++) {
                 int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
-                int flag = 0;
-                if(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && kingdist[x_tmp][y_tmp] > kingdist[xy/10][xy%10] + 1) { // 类似最短路算法
-                    que.push(x_tmp*10 + y_tmp);
-                    kingdist[x_tmp][y_tmp] = kingdist[xy/10][xy%10] + 1;
-                    flag = x_tmp*10 + y_tmp; // 用来记录进que没
-                }
                 while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && queendist[x_tmp][y_tmp] > queendist[xy/10][xy%10] + 1) { // 类似最短路算法
-                    if(flag != x_tmp*10 + y_tmp) que.push(x_tmp*10 + y_tmp);
+                    que.push(x_tmp*10 + y_tmp);
                     queendist[x_tmp][y_tmp] = queendist[xy/10][xy%10] + 1;
                     x_tmp += dx[dir], y_tmp+= dy[dir];
                 }
@@ -412,10 +382,8 @@ inline double ChessBoard::evaluate() {
     // 计算kingMove与queenMove值
     int kingdist_black[8][8], kingdist_white[8][8];
     int queendist_black[8][8], queendist_white[8][8];
-    // kingMove(BLACK, kingdist_black); kingMove(WHITE, kingdist_white);
-    // queenMove(BLACK, queendist_black); queenMove(WHITE, queendist_white);
-    MasterMove(BLACK, kingdist_black, queendist_black);
-    MasterMove(WHITE, kingdist_white, queendist_white);
+    kingMove(BLACK, kingdist_black); kingMove(WHITE, kingdist_white);
+    queenMove(BLACK, queendist_black); queenMove(WHITE, queendist_white);
     double t1 = 0, t2 = 0; // 分别代表两种territory值
     double p1 = 0, p2 = 0; // 分别代表两种position值
     for (int i=0; i<8; i++)
@@ -484,7 +452,14 @@ inline double ChessBoard::evaluate() {
         m_w += m_w_tmp;
         minWhite = min(minWhite, m_w_tmp);
     }
-    double m = m_b + minBlack - m_w - minWhite;
+    double m = m_b - m_w + 1.414 * (minBlack - minWhite); // 尝试给最小mobility加权
+    // 计算Dispersion（原创）
+    int d = 0;
+    for(int i=0; i<4; i++) 
+    	for(int j=i+1; j<4; j++) {
+    		// 计算离散度，由于我特殊的记录棋子位置的方式，只需直接相减取绝对值即可
+    		d += 6.4 / abs(chess[uct_turnplayer][i] - chess[uct_turnplayer][j]);
+    	}
     // 复原棋盘
     while(!remem.empty()) {
         int sol = remem.top();
@@ -495,11 +470,11 @@ inline double ChessBoard::evaluate() {
     // 分段评估
     // 上一个版本：turns + SIM
     if (turns <= 10)
-        ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
+        ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m + k6[0] * d;
     else if (turns <= 25)
-        ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m;
+        ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m + k6[1] * d;
     else
-        ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m;
+        ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m + k6[2] * d;
     // if (turns <= 20)
     //     ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
     // else if (turns < 50)
@@ -632,7 +607,8 @@ int main() {
     // 尝试修改时限：上一次的数据为1.92/0.92
     // 1.97/0.97将有超时可能
     // 1.95/0.95不会超时
-    while ((double)clock() - start < (turn_num == 1 ? 1.96 : 0.96) * CLOCKS_PER_SEC)
+    // 1.98/0.98必超时
+    while ((double)clock() - start < (turn_num == 1 ? 1.97 : 0.97) * CLOCKS_PER_SEC)
         Board.UCTSearch();
     // 输出结果
     // ChessBoard* result = Board.select();
