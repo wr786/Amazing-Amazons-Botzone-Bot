@@ -18,6 +18,8 @@ int PERM8[PERMUTATION_8_MAX][8] = {{0,1,2,3,4,5,6,7},{0,1,2,3,4,5,7,6},{0,1,2,3,
 int PERM4[PERMUTATION_4_MAX][4] = {
 {0,1,2,3},{0,1,3,2},{0,2,1,3},{0,2,3,1},{0,3,1,2},{0,3,2,1},{1,0,2,3},{1,0,3,2},{1,2,0,3},{1,2,3,0},{1,3,0,2},{1,3,2,0},{2,0,1,3},{2,0,3,1},{2,1,0,3},{2,1,3,0},{2,3,0,1},{2,3,1,0},{3,0,1,2},{3,0,2,1},{3,1,0,2},{3,1,2,0},{3,2,0,1},{3,2,1,0}
 };  
+// DEBUG TEST
+int efficiency = 0;
 
 class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
     private:
@@ -40,14 +42,14 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
             int solution[2000];
             int idx = 0; // 记得每次用完时要归零
         } SolutionList;
-        void Initialize();
-        void Reset();
-        bool In_Board(int x, int y);
-        bool Can_Move(int x, int y);
-        int Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color);
-        void Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color); // 悔棋
-        bool Judge_Win();
-        void Next_Turn();
+        inline void Initialize();
+        inline void Reset();
+        inline bool In_Board(int x, int y);
+        inline bool Can_Move(int x, int y);
+        inline int Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color);
+        inline void Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color); // 悔棋
+        inline bool Judge_Win();
+        inline void Next_Turn();
         // 用来寻找所有可以落子和放障碍物的点 面向AI寻找可行解使用
         // 其中SolutionList存放的每个Solution均为一个整数，每位数依次为 起始点x、y，终点x、y，障碍点x、y
         inline void Find_Possible_Move(int xy, int color);
@@ -79,7 +81,6 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         float k3[3] = {0.13, 0.20, 0.05};
         float k4[3] = {0.13, 0.20, 0.05};
         float k5[3] = {0.05, 0.05, 0.00}; // 其实和原参数只有k5_1有区别
-        float k6[3] = {0.07, 0.05, 0.00}; // 自创的dispersion参数
         // 尝试另一组参数
         // float k1[3] = {0.40, 0.25, 0.10};
         // float k2[3] = {0.16, 0.30, 0.80};
@@ -95,7 +96,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         //float k5[3] = {0.30, 0.10, 0.00};
 };
 
-void ChessBoard::Initialize() { // initialize
+inline void ChessBoard::Initialize() { // initialize
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++)
             board[i][j] = EMPTY; 
@@ -106,18 +107,18 @@ void ChessBoard::Initialize() { // initialize
     turn_player = BLACK;
 }
 
-void ChessBoard::Reset() { 
+inline void ChessBoard::Reset() { 
     // ios::sync_with_stdio(false); // iostream加速
     Initialize();
 }
 
-bool ChessBoard::In_Board(int x, int y) {
+inline bool ChessBoard::In_Board(int x, int y) {
     if(x < 0 || x >= 8) return false;
     if(y < 0 || y >= 8) return false;
     return true;
 }
 
-bool ChessBoard::Can_Move(int x, int y) {
+inline bool ChessBoard::Can_Move(int x, int y) {
     for(int dir=0; dir<8; dir++) {
         int x_next = x + dx[dir];
         int y_next = y + dy[dir];
@@ -132,7 +133,7 @@ bool ChessBoard::Can_Move(int x, int y) {
     return false;
 }
 
-int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color = -1) { // 按接口要求，需要转置
+inline int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color = -1) { // 按接口要求，需要转置
     if(color == -1) {
     	color = turn_player;
     }
@@ -175,7 +176,7 @@ int ChessBoard::Move(int x_start, int y_start, int x_final, int y_final, int x_b
     return 0;
 }
 
-void ChessBoard::Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color = -1) { // 按接口要求，需要转置
+inline void ChessBoard::Regret(int x_start, int y_start, int x_final, int y_final, int x_block, int y_block, int color = -1) { // 按接口要求，需要转置
     // 因为坐标的合法性已经在Move里验证过了，所以此处可以免去错误检测环节
     if(color == -1) color = turn_player;
     // ワタシ、再生産。
@@ -187,7 +188,7 @@ void ChessBoard::Regret(int x_start, int y_start, int x_final, int y_final, int 
     board[x_start][y_start] = color;  // 顺序不能变！
 }
 
-bool ChessBoard::Judge_Win() {
+inline bool ChessBoard::Judge_Win() {
     bool locked[3][5]; // 记录对应颜色的第某个棋子是否被锁死
     for(int i=0; i<4; i++) { // 计算其是否被锁死
         locked[BLACK][i+1] = !Can_Move(chess[BLACK][i]/10, chess[BLACK][i]%10);
@@ -209,7 +210,7 @@ bool ChessBoard::Judge_Win() {
     return true;
 }
 
-void ChessBoard::Next_Turn() {
+inline void ChessBoard::Next_Turn() {
     turn_player = 3 - turn_player;
     turns++; // 进行了一回合
 }
@@ -303,21 +304,33 @@ inline int ChessBoard::getRndSol(ChessBoard *Node, int color) { // 随机Roll一
 }
 
 inline void ChessBoard::kingMove(int color, int kingdist[8][8]) { // 计算kingMove值
-    queue<int> que; // int里装的是xy，意义同上
+	int que[250], quel = 0, quer = 0; // 自分实现queue
+    //queue<int> que; // int里装的是xy，意义同上
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++){
             kingdist[i][j] = 786554453; // INF
         }
     for(int chessidx=0; chessidx<4; chessidx++) {
-        que.push(chess[color][chessidx]);
+        // que.push(chess[color][chessidx]);
+        que[quer++] = chess[color][chessidx];
         kingdist[chess[color][chessidx]/10][chess[color][chessidx]%10] = 0;
-        while(!que.empty()) {
-            int xy = que.front();
-            que.pop();
+        // while(!que.empty()) {
+        //     int xy = que.front();
+        //     que.pop();
+        //     for(int dir=0; dir<8; dir++) {
+        //         int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
+        //         if(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && kingdist[x_tmp][y_tmp] > kingdist[xy/10][xy%10] + 1) { // 类似最短路算法
+        //             que.push(x_tmp*10 + y_tmp);
+        //             kingdist[x_tmp][y_tmp] = kingdist[xy/10][xy%10] + 1;
+        //         }
+        //     }
+        // }
+        while(quel < quer) {
+            int xy = que[quel++];
             for(int dir=0; dir<8; dir++) {
                 int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
                 if(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && kingdist[x_tmp][y_tmp] > kingdist[xy/10][xy%10] + 1) { // 类似最短路算法
-                    que.push(x_tmp*10 + y_tmp);
+                    que[quer++] = x_tmp*10 + y_tmp;
                     kingdist[x_tmp][y_tmp] = kingdist[xy/10][xy%10] + 1;
                 }
             }
@@ -326,21 +339,34 @@ inline void ChessBoard::kingMove(int color, int kingdist[8][8]) { // 计算kingM
 }
 
 inline void ChessBoard::queenMove(int color, int queendist[8][8]) { // 计算queenMove值
-    queue<int> que;
+    int que[250], quel = 0, quer = 0; // 自分实现queue
+    // queue<int> que;
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++){
             queendist[i][j] = 786554453; // INF
         }
     for(int chessidx=0; chessidx<4; chessidx++) {
-        que.push(chess[color][chessidx]);
+        //que.push(chess[color][chessidx]);
+        que[quer++] = chess[color][chessidx];
         queendist[chess[color][chessidx]/10][chess[color][chessidx]%10] = 0;
-        while(!que.empty()) {
-            int xy = que.front();
-            que.pop();
+        // while(!que.empty()) {
+        //     int xy = que.front();
+        //     que.pop();
+        //     for(int dir=0; dir<8; dir++) {
+        //         int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
+        //         while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && queendist[x_tmp][y_tmp] > queendist[xy/10][xy%10] + 1) { // 类似最短路算法
+        //             que.push(x_tmp*10 + y_tmp);
+        //             queendist[x_tmp][y_tmp] = queendist[xy/10][xy%10] + 1;
+        //             x_tmp += dx[dir], y_tmp+= dy[dir];
+        //         }
+        //     }
+        // }
+        while(quel < quer) {
+            int xy = que[quel++];
             for(int dir=0; dir<8; dir++) {
                 int x_tmp = xy/10 + dx[dir], y_tmp = xy%10 + dy[dir];
                 while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY && queendist[x_tmp][y_tmp] > queendist[xy/10][xy%10] + 1) { // 类似最短路算法
-                    que.push(x_tmp*10 + y_tmp);
+                    que[quer++] = x_tmp*10 + y_tmp;
                     queendist[x_tmp][y_tmp] = queendist[xy/10][xy%10] + 1;
                     x_tmp += dx[dir], y_tmp+= dy[dir];
                 }
@@ -349,7 +375,7 @@ inline void ChessBoard::queenMove(int color, int queendist[8][8]) { // 计算que
     }
 }
 
-int POW(int base,int num) { // 快速幂 
+inline int POW(int base,int num) { // 快速幂 
 	if(!num) return 1;
     if(base == 2 && num >= 31) return 2147483647; // 防爆炸
 	int x = POW(base, num/2);
@@ -452,14 +478,7 @@ inline double ChessBoard::evaluate() {
         m_w += m_w_tmp;
         minWhite = min(minWhite, m_w_tmp);
     }
-    double m = m_b - m_w + 1.414 * (minBlack - minWhite); // 尝试给最小mobility加权
-    // 计算Dispersion（原创）
-    int d = 0;
-    for(int i=0; i<4; i++) 
-    	for(int j=i+1; j<4; j++) {
-    		// 计算离散度，由于我特殊的记录棋子位置的方式，只需直接相减取绝对值即可
-    		d += 6.4 / abs(chess[uct_turnplayer][i] - chess[uct_turnplayer][j]);
-    	}
+    double m = m_b + minBlack - m_w - minWhite;
     // 复原棋盘
     while(!remem.empty()) {
         int sol = remem.top();
@@ -470,11 +489,11 @@ inline double ChessBoard::evaluate() {
     // 分段评估
     // 上一个版本：turns + SIM
     if (turns <= 10)
-        ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m + k6[0] * d;
+        ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
     else if (turns <= 25)
-        ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m + k6[1] * d;
+        ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m;
     else
-        ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m + k6[2] * d;
+        ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m;
     // if (turns <= 20)
     //     ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
     // else if (turns < 50)
@@ -565,6 +584,8 @@ void ChessBoard::UCTSearch() {
     //     // 这里需不需要Next_Turn待定！
     //     Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - visited[i]->turn_player);
     // }
+    efficiency++;
+    // DEBUG TEST
 }
 
 inline bool ChessBoard::fullyExpand() { // 此结点是否已经完全扩展
@@ -573,6 +594,7 @@ inline bool ChessBoard::fullyExpand() { // 此结点是否已经完全扩展
 }
 
 inline bool ChessBoard::isEnd() { // 此结点是否还能扩展，即是否为叶子节点
+	if(win) return win;
     return Judge_Win(); // 如果有获胜局面出现，那么就已经是叶子节点
     // if (SolutionList.idx == 0) Find_Solutions();
     // return SolutionList.idx == 0; // 没有可行解，那么就不能继续了
@@ -607,7 +629,7 @@ int main() {
     // 尝试修改时限：上一次的数据为1.92/0.92
     // 1.97/0.97将有超时可能
     // 1.95/0.95不会超时
-    // 1.98/0.98必超时
+    // 在超时的边缘试探
     while ((double)clock() - start < (turn_num == 1 ? 1.97 : 0.97) * CLOCKS_PER_SEC)
         Board.UCTSearch();
     // 输出结果
@@ -635,5 +657,7 @@ int main() {
 	    printf("%d %d %d %d %d %d\n", (sol/10000)%10, sol/100000, (sol/100)%10, (sol/1000)%10, sol%10, (sol/10)%10);
 	    // cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     }
+    cout << "#DEBUG:" << efficiency << endl;
+    system("pause");
     return 0;
 }
