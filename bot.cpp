@@ -19,7 +19,7 @@ int PERM4[PERMUTATION_4_MAX][4] = {
 {0,1,2,3},{0,1,3,2},{0,2,1,3},{0,2,3,1},{0,3,1,2},{0,3,2,1},{1,0,2,3},{1,0,3,2},{1,2,0,3},{1,2,3,0},{1,3,0,2},{1,3,2,0},{2,0,1,3},{2,0,3,1},{2,1,0,3},{2,1,3,0},{2,3,0,1},{2,3,1,0},{3,0,1,2},{3,0,2,1},{3,1,0,2},{3,1,2,0},{3,2,0,1},{3,2,1,0}
 };  
 // DEBUG TEST
-// int efficiency = 0;
+int efficiency = 0;
 
 class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
     private:
@@ -375,13 +375,18 @@ inline void ChessBoard::queenMove(int color, int queendist[8][8]) { // 计算que
     }
 }
 
-inline int POW(int base,int num) { // 快速幂 
-	if(!num) return 1;
-    if(base == 2 && num >= 31) return 2147483647; // 防爆炸
-	int x = POW(base, num/2);
-	int ans= x * x;
-	if(num % 2) ans = ans * base;
-	return ans;
+// inline int POW(int base,int num) { // 快速幂 
+// 	if(!num) return 1;
+//     if(base == 2 && num >= 31) return 2147483647; // 防爆炸
+// 	int x = POW(base, num/2);
+// 	int ans= x * x;
+// 	if(num % 2) ans = ans * base;
+// 	return ans;
+// }
+
+inline int POW2(int num) { // 位运算优化快速幂
+	if(num >= 31) return 2147483647;
+	return (1 << num);
 }
 
 inline double ChessBoard::evaluate() {
@@ -431,7 +436,7 @@ inline double ChessBoard::evaluate() {
             else if (queendist_black[i][j] > queendist_white[i][j])
                 t2 -= 1;
             // Position参数
-            p1 += 2 * (1.0 / POW(2, queendist_black[i][j]) - 1.0 / POW(2, queendist_white[i][j]));
+            p1 += 2 * (1.0 / POW2(queendist_black[i][j]) - 1.0 / POW2(queendist_white[i][j]));
             p2 += min(1.0, max(-1.0, (1.0 / 6.0) * (kingdist_white[i][j] - kingdist_black[i][j])));
         }
     // 计算mobility
@@ -584,7 +589,7 @@ void ChessBoard::UCTSearch() {
     //     // 这里需不需要Next_Turn待定！
     //     Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - visited[i]->turn_player);
     // }
-    // efficiency++;
+    efficiency++;
     // DEBUG TEST
 }
 
@@ -681,7 +686,7 @@ int main() {
 	    printf("%d %d %d %d %d %d\n", (sol/10000)%10, sol/100000, (sol/100)%10, (sol/1000)%10, sol%10, (sol/10)%10);
 	    // cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     }
-    // cout << "#DEBUG:" << efficiency << endl;
+    cout << "#DEBUG:" << efficiency << endl;
     // system("pause");
     return 0;
 }
