@@ -19,7 +19,7 @@ int PERM4[PERMUTATION_4_MAX][4] = {
 {0,1,2,3},{0,1,3,2},{0,2,1,3},{0,2,3,1},{0,3,1,2},{0,3,2,1},{1,0,2,3},{1,0,3,2},{1,2,0,3},{1,2,3,0},{1,3,0,2},{1,3,2,0},{2,0,1,3},{2,0,3,1},{2,1,0,3},{2,1,3,0},{2,3,0,1},{2,3,1,0},{3,0,1,2},{3,0,2,1},{3,1,0,2},{3,1,2,0},{3,2,0,1},{3,2,1,0}
 };  
 // DEBUG TEST
-// int efficiency = 0;
+int efficiency = 0;
 
 class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
     private:
@@ -80,7 +80,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         float k2[3] = {0.14, 0.30, 0.80};
         float k3[3] = {0.13, 0.20, 0.05};
         float k4[3] = {0.13, 0.20, 0.05};
-        float k5[3] = {0.05, 0.05, 0.00}; // 其实和原参数只有k5_1有区别
+        // float k5[3] = {0.05, 0.05, 0.00}; // 其实和原参数只有k5_1有区别
         // 尝试另一组参数
         // float k1[3] = {0.40, 0.25, 0.10};
         // float k2[3] = {0.16, 0.30, 0.80};
@@ -439,51 +439,51 @@ inline double ChessBoard::evaluate() {
             p1 += 2 * (1.0 / POW2(queendist_black[i][j]) - 1.0 / POW2(queendist_white[i][j]));
             p2 += min(1.0, max(-1.0, (1.0 / 6.0) * (kingdist_white[i][j] - kingdist_black[i][j])));
         }
-    // 计算mobility
-    int emptyNearby[8][8]; // 先计算每个空格位附能达到的空格数
-	for(int i=0; i<8; i++)
-        for(int j=0; j<8; j++)
-            emptyNearby[i][j] = 0;
-    for(int i=0; i<8; i++) {
-        for(int j=0; j<8; j++) {
-            if(board[i][j] == EMPTY) { // 是空的
-                for(int dir=0; dir<8; dir++){ //八个方向
-                    if(In_Board(i+dx[dir],j+dy[dir]) && board[i+dx[dir]][j+dy[dir]] == EMPTY) emptyNearby[i][j]++;
-                }
-            }
-        }
-    }
-    double m_b = 0, m_w = 0; // 黑棋与白棋的mobility
-    double minBlack = 786554453, minWhite = 786554453; // 最小灵活度，防止过早堵死
-    // 计算黑棋
-    for(int idx=0; idx<4; idx++) { // 第idx个棋
-        double m_b_tmp = 0;
-        for (int dir=0; dir<8; dir++) { // 向8个方向
-            for(int step = 1; step < 8; step++) { // 步长
-                int nx = chess[BLACK][idx] / 10 + dx[dir]*step, ny = chess[BLACK][idx] % 10 + dy[dir]*step;
-                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_black[nx][ny] != 786554453) { //判断是否可以移动
-                    m_b_tmp += (float)emptyNearby[nx][ny] / (float)step;
-                } else break; //此方向不能继续移动
-            }
-        }
-        m_b += m_b_tmp;
-        minBlack = min(minBlack, m_b_tmp);
-    }
-    // 计算白棋
-    for(int idx=0; idx<4; idx++) { // 第idx个棋
-        double m_w_tmp = 0;
-        for (int dir=0; dir<8; dir++) { // 向8个方向
-            for(int step = 1; step < 8; step++) { // 步长
-                int nx = chess[WHITE][idx] / 10 + dx[dir]*step, ny = chess[WHITE][idx] % 10 + dy[dir]*step;
-                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_white[nx][ny] != 786554453) { //判断是否可以移动
-                    m_w_tmp += (float)emptyNearby[nx][ny] / (float)step;
-                } else break; //此方向不能继续移动
-            }
-        }
-        m_w += m_w_tmp;
-        minWhite = min(minWhite, m_w_tmp);
-    }
-    double m = m_b + minBlack - m_w - minWhite;
+ //    // 计算mobility
+ //    int emptyNearby[8][8]; // 先计算每个空格位附能达到的空格数
+	// for(int i=0; i<8; i++)
+ //        for(int j=0; j<8; j++)
+ //            emptyNearby[i][j] = 0;
+ //    for(int i=0; i<8; i++) {
+ //        for(int j=0; j<8; j++) {
+ //            if(board[i][j] == EMPTY) { // 是空的
+ //                for(int dir=0; dir<8; dir++){ //八个方向
+ //                    if(In_Board(i+dx[dir],j+dy[dir]) && board[i+dx[dir]][j+dy[dir]] == EMPTY) emptyNearby[i][j]++;
+ //                }
+ //            }
+ //        }
+ //    }
+ //    double m_b = 0, m_w = 0; // 黑棋与白棋的mobility
+ //    double minBlack = 786554453, minWhite = 786554453; // 最小灵活度，防止过早堵死
+ //    // 计算黑棋
+ //    for(int idx=0; idx<4; idx++) { // 第idx个棋
+ //        double m_b_tmp = 0;
+ //        for (int dir=0; dir<8; dir++) { // 向8个方向
+ //            for(int step = 1; step < 8; step++) { // 步长
+ //                int nx = chess[BLACK][idx] / 10 + dx[dir]*step, ny = chess[BLACK][idx] % 10 + dy[dir]*step;
+ //                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_black[nx][ny] != 786554453) { //判断是否可以移动
+ //                    m_b_tmp += (float)emptyNearby[nx][ny] / (float)step;
+ //                } else break; //此方向不能继续移动
+ //            }
+ //        }
+ //        m_b += m_b_tmp;
+ //        minBlack = min(minBlack, m_b_tmp);
+ //    }
+ //    // 计算白棋
+ //    for(int idx=0; idx<4; idx++) { // 第idx个棋
+ //        double m_w_tmp = 0;
+ //        for (int dir=0; dir<8; dir++) { // 向8个方向
+ //            for(int step = 1; step < 8; step++) { // 步长
+ //                int nx = chess[WHITE][idx] / 10 + dx[dir]*step, ny = chess[WHITE][idx] % 10 + dy[dir]*step;
+ //                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_white[nx][ny] != 786554453) { //判断是否可以移动
+ //                    m_w_tmp += (float)emptyNearby[nx][ny] / (float)step;
+ //                } else break; //此方向不能继续移动
+ //            }
+ //        }
+ //        m_w += m_w_tmp;
+ //        minWhite = min(minWhite, m_w_tmp);
+ //    }
+ //    double m = m_b + minBlack - m_w - minWhite;
     // 复原棋盘
     while(!remem.empty()) {
         int sol = remem.top();
@@ -494,11 +494,17 @@ inline double ChessBoard::evaluate() {
     // 分段评估
     // 上一个版本：turns + SIM
     if (turns <= 10)
-        ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
+        ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2;
     else if (turns <= 25)
-        ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m;
+        ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2;
     else
-        ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m;
+        ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2;
+    // if (turns <= 10)
+    //     ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
+    // else if (turns <= 25)
+    //     ret = k1[1] * t1 + k2[1] * t2 + k3[1] * p1 + k4[1] * p2 + k5[1] * m;
+    // else
+    //     ret = k1[2] * t1 + k2[2] * t2 + k3[2] * p1 + k4[2] * p2 + k5[2] * m;
     // if (turns <= 20)
     //     ret = k1[0] * t1 + k2[0] * t2 + k3[0] * p1 + k4[0] * p2 + k5[0] * m;
     // else if (turns < 50)
@@ -589,7 +595,7 @@ void ChessBoard::UCTSearch() {
     //     // 这里需不需要Next_Turn待定！
     //     Regret(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10, 3 - visited[i]->turn_player);
     // }
-    // efficiency++;
+    efficiency++;
     // DEBUG TEST
 }
 
@@ -686,7 +692,7 @@ int main() {
 	    printf("%d %d %d %d %d %d\n", (sol/10000)%10, sol/100000, (sol/100)%10, (sol/1000)%10, sol%10, (sol/10)%10);
 	    // cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     }
-    // cout << "#DEBUG:" << efficiency << endl;
+    cout << "#DEBUG:" << efficiency << endl;
     // system("pause");
     return 0;
 }
