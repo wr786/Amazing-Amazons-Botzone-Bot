@@ -4,8 +4,7 @@
 
 ### Best Version now:
 
-- A_B_再再生产[14]
-- A_B_Adjust[10]
+- A_B_saisaiseisann[23]
 
 ### Need to beat:
 - [x] `yangrq yangrq`
@@ -232,4 +231,9 @@ A87 : S22 C = 0.37 先手1/1 后手0/2
 
 A92 : S22 Knuth Shuffle 先手1/4
 
-A94 : S22 快读 先手
+A94 : S22 快读 先手4/7 后手3/6
+
+A95 : S22 SIM 2 4 分界点50 先手4/4 后手2/5
+
+**A96 : S22 SIM 2 4 分界点10 先手5/6 后手5/6**
+
