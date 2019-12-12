@@ -1,4 +1,5 @@
 #include<cstdio>
+#include<cstdlib>
 #include<iostream>
 #include<algorithm>
 #include<cmath>
@@ -10,6 +11,7 @@
 #include<vector>
 #include<ctime>
 using namespace std;
+#pragma GCC optimize(3,"Ofast","inline")
 //#define EPS 1e-4
 #define PERMUTATION_4_MAX 24
 #define PERMUTATION_8_MAX 40320
@@ -24,8 +26,14 @@ int PERM4[PERMUTATION_4_MAX][4] = {
 };
 int dx[8] = {0, 1, 1, 1, 0, -1, -1, -1};
 int dy[8] = {1, 1, 0, -1, -1, -1, 0, 1};  
+// 参数列表
+float k1[3] = {0.37, 0.25, 0.10};
+float k2[3] = {0.14, 0.30, 0.80};
+float k3[3] = {0.13, 0.20, 0.05};
+float k4[3] = {0.13, 0.20, 0.05};
+float k5[3] = {0.05, 0.05, 0.00}; // 其实和原参数只有k5_1有区别
 // DEBUG TEST
-int efficiency = 0;
+// int efficiency = 0;
 
 
 class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
@@ -38,10 +46,7 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         // short CANGO = 6; // 可以下的点（而且可以进一步放障碍物）
         int turn_player; // 本回合玩家
         int win = 0; // 当前棋盘是否获胜，1为胜，否则为败
-        struct SL { // 存放可行解用
-            int solution[2000];
-            int idx = 0; // 记得每次用完时要归零
-        } SolutionList;
+        int SolutionListidx = 0;
         inline void Initialize();
         inline void Reset();
         inline bool In_Board(int x, int y);
@@ -74,12 +79,6 @@ class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
         inline void kingMove(int color, int kingdist[8][8]);
         inline void queenMove(int color, int queendist[8][8]);
         inline double evaluate();
-        // 参数列表
-		float k1[3] = {0.37, 0.25, 0.10};
-        float k2[3] = {0.14, 0.30, 0.80};
-        float k3[3] = {0.13, 0.20, 0.05};
-        float k4[3] = {0.13, 0.20, 0.05};
-        float k5[3] = {0.05, 0.05, 0.00}; // 其实和原参数只有k5_1有区别
 };
 
 inline int POW2(int num) { // 位运算优化快速幂
@@ -215,7 +214,7 @@ inline void ChessBoard::Find_Possible_Block(int xy_start, int xy_final, int colo
         while(In_Board(x_tmp, y_tmp) && board[x_tmp][y_tmp] == EMPTY) { // 在能够落子之后还能放障碍物，那么这就相当于一个Solution
             // 每个Solution均为一个整数，每位数依次为 起始点x、y，终点x、y，障碍点x、y（复读）
             //SolutionList.solution[++SolutionList.idx] = (xy_start * 1e4 + xy_final * 1e2 + x_tmp *10 + y_tmp);
-            SolutionList.idx++; // 只求有几个，不求别的
+            SolutionListidx++; // 只求有几个，不求别的
             x_tmp += dx[dir], y_tmp += dy[dir];
         }
     }
@@ -235,7 +234,7 @@ inline void ChessBoard::Find_Possible_Move(int xy, int color) {
 
 inline void ChessBoard::Find_Solutions(int color = -1) {
 	if(color == -1) color = turn_player;
-    SolutionList.idx = 0;
+    SolutionListidx = 0;
     for(int idx=0; idx<4; idx++) {
         Find_Possible_Move(chess[color][idx], color);
     }
@@ -413,7 +412,7 @@ inline double ChessBoard::evaluate() {
  //        for (int dir=0; dir<8; dir++) { // 向8个方向
  //            for(int step = 1; step < 8; step++) { // 步长
  //                int nx = chess[BLACK][idx] / 10 + dx[dir]*step, ny = chess[BLACK][idx] % 10 + dy[dir]*step;
- //                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_black[nx][ny] != 786554453) { //判断是否可以移动
+ //                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_white[nx][ny] != 786554453) { //判断是否可以移动
  //                    m_b_tmp += (float)emptyNearby[nx][ny] / (float)step;
  //                } else break; //此方向不能继续移动
  //            }
@@ -427,7 +426,7 @@ inline double ChessBoard::evaluate() {
  //        for (int dir=0; dir<8; dir++) { // 向8个方向
  //            for(int step = 1; step < 8; step++) { // 步长
  //                int nx = chess[WHITE][idx] / 10 + dx[dir]*step, ny = chess[WHITE][idx] % 10 + dy[dir]*step;
- //                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_white[nx][ny] != 786554453) { //判断是否可以移动
+ //                if (In_Board(nx, ny) && board[nx][ny] == EMPTY && queendist_black[nx][ny] != 786554453) { //判断是否可以移动
  //                    m_w_tmp += (float)emptyNearby[nx][ny] / (float)step;
  //                } else break; //此方向不能继续移动
  //            }
@@ -479,7 +478,10 @@ ChessBoard* ChessBoard::expand() {
     int sol = getRndSol(this, turn_player); // 对现在的局面生成随机可行解
     if(sol < 0) return nullptr; // 没有可行解了
     // expand 子节点
-    ChessBoard* node = new ChessBoard;
+    // ChessBoard* node = new ChessBoard;
+    void* newPtr = malloc(sizeof(ChessBoard));
+    ChessBoard* node = new(newPtr)ChessBoard;
+    // ChessBoard* node = (ChessBoard*)malloc(sizeof(ChessBoard));
     node->copy(*this);
     node->Move(sol/100000, (sol/10000)%10, (sol/1000)%10, (sol/100)%10, (sol/10)%10, sol%10);
     node->Next_Turn(); // 注意顺序
@@ -513,13 +515,13 @@ void ChessBoard::UCTSearch() {
         	visited[i]->score += visited[visited_idx - 1]->score; // 自下而上
         }
     }
-    efficiency++;
+    // efficiency++;
     // DEBUG TEST
 }
 
 inline bool ChessBoard::fullyExpand() { // 此结点是否已经完全扩展
-    if (SolutionList.idx == 0) Find_Solutions();
-    return SolutionList.idx <= childNum; // 子节点个数＞所有可能方法数，则已完全扩展
+    if (SolutionListidx == 0) Find_Solutions();
+    return SolutionListidx <= childNum; // 子节点个数＞所有可能方法数，则已完全扩展
 }
 
 inline bool ChessBoard::isEnd() { // 此结点是否还能扩展，即是否为叶子节点
@@ -610,7 +612,7 @@ int main() {
 	    printf("%d %d %d %d %d %d\n", (sol/10000)%10, sol/100000, (sol/100)%10, (sol/1000)%10, sol%10, (sol/10)%10);
 	    // cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     }
-    cout << "#DEBUG:" << efficiency << endl;
+    // cout << "#DEBUG:" << efficiency << endl;
     // system("pause");
     return 0;
 }
