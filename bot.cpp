@@ -33,7 +33,7 @@ float k3[3] = {0.13, 0.20, 0.05};
 float k4[3] = {0.13, 0.20, 0.05};
 float k5[3] = {0.05, 0.05, 0.00}; // 其实和原参数只有k5_1有区别
 // DEBUG TEST
-// int efficiency = 0;
+int efficiency = 0;
 
 
 class ChessBoard { // 每个棋盘都是UCTree的一个节点！（暴论）
@@ -515,7 +515,7 @@ void ChessBoard::UCTSearch() {
         	visited[i]->score += visited[visited_idx - 1]->score; // 自下而上
         }
     }
-    // efficiency++;
+    efficiency++;
     // DEBUG TEST
 }
 
@@ -546,13 +546,24 @@ inline int read() {
 	return sign * ret;
 }
 
+inline int unsign_read() {
+	int ret = 0;
+	char c = getchar();
+	while(c == ' ' || c == '\n') c = getchar();
+	while('0' <= c && c <= '9') {
+		ret = ret * 10 + c - '0';
+		c = getchar();
+	}
+	return ret;
+}
+
 int main() {
     ChessBoard Board;
     Board.Reset();
     int turn_num; 
     // cin >> turn_num;
     // scanf("%d", &turn_num);
-    turn_num = read();
+    turn_num = unsign_read();
     int x_start, y_start, x_final, y_final, x_block, y_block;
     x_start = read(), y_start = read(), x_final = read(), y_final= read(), x_block = read(), y_block = read();
     // scanf("%d%d%d%d%d%d", &x_start, &y_start, &x_final, &y_final, &x_block, &y_block);
@@ -571,7 +582,7 @@ int main() {
     }
     for(int i=1; i<=2*(turn_num-1); i++) {
     	// scanf("%d%d%d%d%d%d", &x_start, &y_start, &x_final, &y_final, &x_block, &y_block);
-	    x_start = read(), y_start = read(), x_final = read(), y_final= read(), x_block = read(), y_block = read();
+	    x_start = unsign_read(), y_start = unsign_read(), x_final = unsign_read(), y_final = unsign_read(), x_block = unsign_read(), y_block = unsign_read();
         // cin >> x_start >> y_start >> x_final >> y_final >> x_block >> y_block;
         Board.Move(y_start, x_start, y_final, x_final, y_block, x_block); // 适应接口，需要换序
         Board.Next_Turn();
@@ -612,7 +623,7 @@ int main() {
 	    printf("%d %d %d %d %d %d\n", (sol/10000)%10, sol/100000, (sol/100)%10, (sol/1000)%10, sol%10, (sol/10)%10);
 	    // cout << (sol/10000)%10 << " " << sol/100000 << " " << (sol/100)%10 << " " << (sol/1000)%10 << " " << sol%10 << " " << (sol/10)%10 << endl;
     }
-    // cout << "#DEBUG:" << efficiency << endl;
+    cout << "#DEBUG:" << efficiency << endl;
     // system("pause");
     return 0;
 }
